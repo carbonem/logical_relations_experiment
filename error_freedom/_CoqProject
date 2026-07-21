@@ -1,0 +1,13 @@
+-R . Tait
+PolBase.v
+PolTypes.v
+PolProc.v
+PolLTS.v
+PolErr.v
+PolTyping.v
+PolLogRel.v
+PolEquiv.v
+PolCompat.v
+PolSem.v
+PolComb.v
+PolFN.v

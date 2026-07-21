@@ -1,0 +1,17 @@
+-R . Tait
+synsem.v
+Errors.v
+LogRel.v
+Toolkit.v
+LTS.v
+Transfer.v
+Discharge.v
+Bridge.v
+Typing.v
+Adequacy.v
+Fundamental.v
+Tau.v
+LogRelTau.v
+TauInv.v
+TauEquiv.v
+TauSem.v
