@@ -1,50 +1,30 @@
-(** * The fundamental theorem, in substitution form
+(** * σ-parametric compatibility for the split-context system
 
-    The direct route -- a standalone contraction lemma for the fuse
-    clause of the receive compatibility -- founders on scope
-    extrusion: a bound-delegation synchronization at a merged pair
-    leaves the image residual [C[(ν)(P' ∥ Q')]] while any preimage
-    replay produces [(ν)(C-shifted[...])], and bridging the two
-    semantically is exactly the structural-congruence tax this
-    development set out to avoid.
+    The fundamental theorem is stated for OPEN terms under name
+    substitutions that may MERGE the two ends of a session
+    ([PolBridge.v] supplies the semantic typing it inducts on).  This
+    file carries the machinery: valid substitutions [vok], the
+    pushforward [spush] of a semantic context along one, and one
+    compatibility lemma per semantic typing rule.
 
-    The classical dodge dissolves it: state the fundamental theorem
-    for OPEN terms under name substitutions that may MERGE the two
-    separate ends of one session into a single both-name (Harper's
-    open-terms-with-related-substitutions form).  Then the fuse
-    branch of a receive is just the continuation's induction
-    hypothesis at the merging substitution [scons y σ], and every
-    internal synchronization at a merged pair is discharged at the
-    typing-parallel node by [combineP] -- machinery already proven.
-
-    Layout:
-    - [eraseS], [vok], [spush]: semantic pre-contexts, valid
-      substitutions (collisions only across dual separate ends), and
-      the pushforward of a pre-context along a substitution.
-    - characterization lemmas for [spush] under [vok];
-    - [stypedP]: the semantic typing judgment (typing with the link
-      protocols kept), and the bridge from [typedP];
-    - the σ-parametric fundamental theorem, by induction on
-      [stypedP];
-    - end-to-end error freedom at [σ = id]. *)
+    What changed from the cut-based development: [fcompat_par] no
+    longer takes a single link plus a disjoint frame.  It takes the
+    merge relation [dmerge] itself -- the same one [combineP] consumes
+    -- and the work is [dmerge_spush], which pushes a merge forward
+    along a substitution.  Two sessions may now cross one parallel
+    composition, and a substitution may in addition merge two ends
+    that the split had put on OPPOSITE sides: that is the case where
+    a live link is created by the substitution rather than by the
+    typing. *)
 
 From mathcomp Require Import all_ssreflect.
 From Stdlib Require Import Eqdep_dec PeanoNat.
 From Tait Require Import PolBase PolTypes PolProc PolLTS PolErr PolTyping
-  PolLogRel PolEquiv PolCompat PolSem PolComb.
+  PolLogRel PolEquiv PolCompat PolSem PolComb PolBridge.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
 Open Scope pol_scope.
-
-(** ** Erasure: semantic slots to syntactic ones *)
-
-Definition eraseS (o : option sslot) : option slot :=
-  match o with
-  | None => None
-  | Some (SSep ρ S0) => Some (Sep ρ S0)
-  | Some (SBoth _) => Some Schk
-  end.
 
 (** ** Valid substitutions
 
@@ -256,6 +236,45 @@ Proof.
     by rewrite F'' in F2.
 Qed.
 
+Lemma spush_both_inv m n (σ : ren m n) (Δs : sctxP m) w S0 :
+  vok σ Δs ->
+  spush σ Δs w = Some (SBoth S0) ->
+  (exists x,
+    [/\ σ x = w, Δs x = Some (SBoth S0)
+      & forall x', σ x' = w -> Δs x' <> None -> x' = x])
+  \/ (exists x0 x1 ρ T,
+       [/\ σ x0 = w, σ x1 = w, x0 <> x1,
+           Δs x0 = Some (SSep ρ T) /\ Δs x1 = Some (SSep (flipp ρ) (dual T))
+         & S0 = pole ρ T]).
+Proof.
+  move=> Hv. rewrite /spush.
+  case F : (find_ch (fun x => (σ x == w) && ~~ oslot_eqb (Δs x) None))
+    => [x0|] //.
+  move: (find_ch_sound F) => /spush_p1 [E0 Ho0].
+  case F2 : (find_ch (fun x' => [&& σ x' == w,
+                ~~ oslot_eqb (Δs x') None & x' != x0])) => [x1|].
+  - move: (find_ch_sound F2) => /and3P[/eqP E1 Ho1 Hne1].
+    have Hox1 : Δs x1 <> None.
+      by case: (oslot_eqP (Δs x1) None) Ho1.
+    have Hne : x0 <> x1.
+      by move=> E; move: Hne1; rewrite E eqxx.
+    case: (Hv x0 x1 Ho0 Hox1 _).
+      by rewrite E0 E1.
+      by move=> E; case: (Hne E).
+    move=> [ρ [T [D0 D1]]].
+    rewrite D0. move=> [ES0].
+    right. exists x0, x1, ρ, T. by split.
+  - move=> ED. left. exists x0. split=> //.
+    move=> x' Ex' Hox'.
+    case Enx : (x' == x0); first by move/eqP: Enx.
+    have Hp : [&& σ x' == w, ~~ oslot_eqb (Δs x') None & x' != x0].
+      rewrite Ex' eqxx Enx andbT /=.
+      by case: (oslot_eqP (Δs x') None).
+    case: (find_ch_complete (p := fun x' => [&& σ x' == w,
+              ~~ oslot_eqb (Δs x') None & x' != x0]) Hp) => x'' F''.
+    by rewrite F'' in F2.
+Qed.
+
 Lemma spush_owned_inv m n (σ : ren m n) (Δs : sctxP m) w :
   spush σ Δs w <> None ->
   exists x, σ x = w /\ Δs x <> None.
@@ -266,308 +285,6 @@ Proof.
   move: (find_ch_sound F) => /spush_p1 [E0 Ho0] _.
   by exists x0.
 Qed.
-
-(** ** Semantic typing: the judgment with link protocols kept
-
-    [typedP] erased internal link protocols to a bare ✓; the
-    semantic judgment keeps them, recording each internal name as a
-    both-slot at the pole of its link type.  The fundamental theorem
-    inducts on this judgment; a bridge lemma reads the protocols
-    back off a [typedP] derivation. *)
-
-Inductive stypedP : forall m, sctxP m -> procP m -> Prop :=
-| ST_End : forall m (Δ : sctxP m),
-    (forall x, Δ x = None) ->
-    stypedP Δ ∅
-| ST_Close : forall m (Δ : sctxP m) (x : ch m) (r : pol) K,
-    Δ x = Some (SSep r SClose) ->
-    stypedP (scupd x None Δ) K ->
-    stypedP Δ ((x, r) !․ K)
-| ST_Wait : forall m (Δ : sctxP m) (x : ch m) (r : pol) K,
-    Δ x = Some (SSep r SWait) ->
-    stypedP (scupd x None Δ) K ->
-    stypedP Δ ((x, r) ?․ K)
-| ST_Del : forall m (Δ : sctxP m) (x y : ch m) (r rd : pol) T S2 K,
-    Δ x = Some (SSep r (SSend T S2)) ->
-    Δ y = Some (SSep rd T) ->
-    stypedP (scupd y None (scupd x (Some (SSep r S2)) Δ)) K ->
-    stypedP Δ ((x, r) ! (y, rd) ․ K)
-| ST_Ins : forall m (Δ : sctxP m) (x : ch m) (r rd : pol) T S2
-    (K : procP m.+1),
-    Δ x = Some (SSep r (SRecv T S2)) ->
-    stypedP (scons (Some (SSep rd T))
-               (scupd x (Some (SSep r S2)) Δ)) K ->
-    stypedP Δ ((x, r) ?( rd )․ K)
-| ST_Par : forall m (Δ Δ1 Δ2 : sctxP m) (z : ch m) (r : pol) T P Q,
-    stypedP Δ1 P -> stypedP Δ2 Q ->
-    Δ1 z = Some (SSep r T) ->
-    Δ2 z = Some (SSep (flipp r) (dual T)) ->
-    (forall x, x != z ->
-       (Δ1 x = None /\ Δ x = Δ2 x) \/ (Δ2 x = None /\ Δ x = Δ1 x)) ->
-    Δ z = Some (SBoth (pole r T)) ->
-    stypedP Δ (P ∥ Q)
-| ST_Res : forall m (Δ : sctxP m) (S : sty) (B : procP m.+1),
-    stypedP (scons (Some (SBoth S)) Δ) B ->
-    stypedP Δ ((ν) B)
-| ST_Sel : forall m (Δ : sctxP m) (x : ch m) (r : pol) (b : bool)
-    S1 S2 K,
-    Δ x = Some (SSep r (SSel S1 S2)) ->
-    stypedP (scupd x (Some (SSep r (if b then S1 else S2))) Δ) K ->
-    stypedP Δ ((x, r) ◁ b ․ K)
-| ST_Bra : forall m (Δ Δ1' Δ2' : sctxP m) (x : ch m) (r : pol)
-    S1 S2 K1 K2,
-    Δ x = Some (SSep r (SBra S1 S2)) ->
-    sevolve Δ Δ1' ->
-    sevolve Δ Δ2' ->
-    stypedP (scupd x (Some (SSep r S1)) Δ1') K1 ->
-    stypedP (scupd x (Some (SSep r S2)) Δ2') K2 ->
-    stypedP Δ ((x, r) ▷ ( K1 | K2 )).
-
-Lemma stypedP_ext m (Δ Δ' : sctxP m) (P : procP m) :
-  (forall x, Δ x = Δ' x) ->
-  stypedP Δ P -> stypedP Δ' P.
-Proof.
-  move=> Hd Ht. elim: Ht Δ' Hd => {m Δ P}.
-  - move=> m Δ HD Δ' Hd. apply: ST_End => x. by rewrite -Hd.
-  - move=> m Δ x r K HxS _ IH Δ' Hd.
-    apply: ST_Close; first by rewrite -Hd.
-    apply: IH => y. rewrite /scupd.
-    by case: (y == x).
-  - move=> m Δ x r K HxS _ IH Δ' Hd.
-    apply: ST_Wait; first by rewrite -Hd.
-    apply: IH => y. rewrite /scupd.
-    by case: (y == x).
-  - move=> m Δ x y r rd T S2 K HxS HyS _ IH Δ' Hd.
-    apply: (ST_Del (T := T) (S2 := S2));
-      [by rewrite -Hd | by rewrite -Hd |].
-    apply: IH => z. rewrite /scupd.
-    case: (z == y) => //. by case: (z == x).
-  - move=> m Δ x r rd T S2 K HxS _ IH Δ' Hd.
-    apply: (ST_Ins (T := T) (S2 := S2) (rd := rd));
-      first by rewrite -Hd.
-    apply: IH => -[z|] //=. rewrite /scupd.
-    by case: ((z : ch m) == x).
-  - move=> m Δ Δ1 Δ2 z r T P Q _ IH1 _ IH2 E1 E2 HF ED Δ' Hd.
-    apply: (ST_Par (Δ1 := Δ1) (Δ2 := Δ2) (z := z) (r := r) (T := T))
-      => //.
-    + exact: IH1.
-    + exact: IH2.
-    + move=> x Hne. case: (HF x Hne) => -[Ea Eb];
-        [left | right]; by rewrite -Hd.
-    + by rewrite -Hd.
-  - move=> m Δ S B _ IH Δ' Hd.
-    apply: (ST_Res (S := S)).
-    apply: IH => -[z|] //=.
-  - move=> m Δ x r b S1 S2 K HxS _ IH Δ' Hd.
-    apply: (ST_Sel (b := b) (S1 := S1) (S2 := S2));
-      first by rewrite -Hd.
-    apply: IH => z. rewrite /scupd.
-    by case: (z == x).
-  - move=> m Δ Δ1' Δ2' x r S1 S2 K1 K2 HxS Hev1 Hev2 _ IH1 _ IH2 Δ' Hd.
-    apply: (ST_Bra (Δ1' := Δ1') (Δ2' := Δ2') (S1 := S1) (S2 := S2)).
-    + by rewrite -Hd.
-    + move=> z. case: (Hev1 z) => [E|[S0 [S0' [E E']]]].
-      * left. by rewrite E Hd.
-      * right. exists S0, S0'. by rewrite -Hd.
-    + move=> z. case: (Hev2 z) => [E|[S0 [S0' [E E']]]].
-      * left. by rewrite E Hd.
-      * right. exists S0, S0'. by rewrite -Hd.
-    + exact: IH1.
-    + exact: IH2.
-Qed.
-
-(** Erasure inversions. *)
-Lemma eraseS_none o : eraseS o = None -> o = None.
-Proof. by case: o => [[ρ S0|S0]|]. Qed.
-
-Lemma eraseS_sep o ρ S0 : eraseS o = Some (Sep ρ S0) -> o = Some (SSep ρ S0).
-Proof. by case: o => [[ρ' S'|S']|] //= -[-> ->]. Qed.
-
-Lemma eraseS_chk o : eraseS o = Some Schk -> exists S0, o = Some (SBoth S0).
-Proof. case: o => [[ρ' S'|S']|] //= _. by exists S'. Qed.
-
-(** The bridge: a syntactic derivation admits a semantic refinement
-    whose erasure is the syntactic context. *)
-Lemma typed_styped m (Γ : pctx m) (P : procP m) :
-  typedP Γ P ->
-  exists Δs : sctxP m,
-    (forall x, eraseS (Δs x) = Γ x) /\ stypedP Δs P.
-Proof.
-  elim=> {m Γ P}.
-  - move=> m Γ HG.
-    exists scempty. split; last by apply: ST_End.
-    move=> x. by rewrite HG.
-  - (* close *)
-    move=> m Γ x r K HxS _ [Δs [HE Ht]].
-    have Hx0 : Δs x = None.
-      apply: eraseS_none. by rewrite HE /pcupd eqxx.
-    exists (scupd x (Some (SSep r SClose)) Δs). split.
-    + move=> y. rewrite /scupd.
-      case Ey : (y == x) => /=.
-      * by move/eqP: Ey => ->; rewrite HxS.
-      * by rewrite HE /pcupd Ey.
-    + apply: (ST_Close (x := x) (r := r)); first by rewrite scupd_eq.
-      apply: stypedP_ext Ht => y.
-      rewrite /scupd. case Ey : (y == x) => //.
-      by move/eqP: Ey => ->; rewrite Hx0.
-  - (* wait *)
-    move=> m Γ x r K HxS _ [Δs [HE Ht]].
-    have Hx0 : Δs x = None.
-      apply: eraseS_none. by rewrite HE /pcupd eqxx.
-    exists (scupd x (Some (SSep r SWait)) Δs). split.
-    + move=> y. rewrite /scupd.
-      case Ey : (y == x) => /=.
-      * by move/eqP: Ey => ->; rewrite HxS.
-      * by rewrite HE /pcupd Ey.
-    + apply: (ST_Wait (x := x) (r := r)); first by rewrite scupd_eq.
-      apply: stypedP_ext Ht => y.
-      rewrite /scupd. case Ey : (y == x) => //.
-      by move/eqP: Ey => ->; rewrite Hx0.
-  - (* free delegation *)
-    move=> m Γ x y r rd T S2 K HxS HyS _ [Δs [HE Ht]].
-    have Hxy : (x == y) = false.
-      case Exy : (x == y) => //.
-      move/eqP: Exy HyS => <-. rewrite HxS => -[_ ET].
-      by case: (ssend_neqT (esym ET)).
-    have Hy0 : Δs y = None.
-      apply: eraseS_none. by rewrite HE /pcupd eqxx.
-    have Hx2 : Δs x = Some (SSep r S2).
-      apply: eraseS_sep.
-      by rewrite HE /pcupd Hxy eqxx.
-    exists (scupd x (Some (SSep r (SSend T S2)))
-              (scupd y (Some (SSep rd T)) Δs)). split.
-    + move=> w. rewrite /scupd.
-      case Ewx : (w == x) => /=.
-      * by move/eqP: Ewx => ->; rewrite HxS.
-      * case Ewy : (w == y) => /=.
-        -- by move/eqP: Ewy => ->; rewrite HyS.
-        -- by rewrite HE /pcupd Ewy /pcupd Ewx.
-    + apply: (ST_Del (x := x) (y := y) (r := r) (rd := rd)
-                (T := T) (S2 := S2)).
-      * by rewrite scupd_eq.
-      * by rewrite /scupd eq_sym Hxy eqxx.
-      * apply: stypedP_ext Ht => w.
-        rewrite /scupd.
-        case Ewy : (w == y) => //=.
-        -- by move/eqP: Ewy => ->; rewrite Hy0.
-        -- case Ewx : (w == x) => //=.
-           by move/eqP: Ewx => ->; rewrite Hx2.
-  - (* receive *)
-    move=> m Γ x r rd T S2 K HxS _ [Δs [HE Ht]].
-    have Hz : Δs zero = Some (SSep rd T).
-      exact: eraseS_sep (HE zero).
-    have Hx2 : Δs (shift x) = Some (SSep r S2).
-      apply: eraseS_sep. by rewrite (HE (shift x)) /= /pcupd eqxx.
-    exists (scupd x (Some (SSep r (SRecv T S2)))
-              (fun w => Δs (shift w))). split.
-    + move=> w. rewrite /scupd.
-      case Ewx : (w == x) => /=.
-      * by move/eqP: Ewx => ->; rewrite HxS.
-      * by rewrite (HE (shift w)) /= /pcupd Ewx.
-    + apply: (ST_Ins (x := x) (r := r) (rd := rd) (T := T) (S2 := S2)).
-      * by rewrite scupd_eq.
-      * apply: stypedP_ext Ht => -[w|] /=; last by rewrite Hz.
-        rewrite /scupd.
-        case Ewx : ((w : ch m) == x) => //=.
-        by move/eqP: Ewx => ->; rewrite Hx2.
-  - (* parallel *)
-    move=> m Γ Γ1 Γ2 z r T P Q _ [Δs1 [HE1 Ht1]] _ [Δs2 [HE2 Ht2]]
-      Hz1 Hz2 HF Hz.
-    have Dz1 : Δs1 z = Some (SSep r T).
-      apply: eraseS_sep. by rewrite HE1.
-    have Dz2 : Δs2 z = Some (SSep (flipp r) (dual T)).
-      apply: eraseS_sep. by rewrite HE2.
-    exists (fun w => if w == z then Some (SBoth (pole r T))
-                     else if Δs1 w is Some e then Some e else Δs2 w).
-    split.
-    + move=> w.
-      case Ewz : (w == z) => /=.
-      * by move/eqP: Ewz => ->; rewrite Hz.
-      * have Hne : w != z by rewrite Ewz.
-        case: (HF _ Hne) => -[Ea Eb].
-        -- have D1 : Δs1 w = None.
-             apply: eraseS_none. by rewrite HE1.
-           by rewrite D1 HE2.
-        -- have D2 : Δs2 w = None.
-             apply: eraseS_none. by rewrite HE2.
-           case E1 : (Δs1 w) => [e|].
-           ++ by rewrite -E1 HE1 Eb.
-           ++ by rewrite D2 Eb -HE1 E1.
-    + apply: (ST_Par (Δ1 := Δs1) (Δ2 := Δs2) (z := z) (r := r)
-                (T := T)) => //.
-      * move=> w Hne.
-        case: (HF _ Hne) => -[Ea Eb].
-        -- left. split.
-           ++ apply: eraseS_none. by rewrite HE1.
-           ++ have D1 : Δs1 w = None.
-                apply: eraseS_none. by rewrite HE1.
-              by rewrite (negbTE Hne) D1.
-        -- right. split.
-           ++ apply: eraseS_none. by rewrite HE2.
-           ++ have D2 : Δs2 w = None.
-                apply: eraseS_none. by rewrite HE2.
-              rewrite (negbTE Hne).
-              by case E1 : (Δs1 w).
-      * by rewrite eqxx.
-  - (* restriction *)
-    move=> m Γ B _ [Δs [HE Ht]].
-    have [S0 Hz] : exists S0, Δs zero = Some (SBoth S0).
-      exact: eraseS_chk (HE zero).
-    exists (fun w => Δs (shift w)). split.
-    + move=> w. exact: (HE (shift w)).
-    + apply: (ST_Res (S := S0)).
-      by apply: stypedP_ext Ht => -[w|] //=.
-  - (* select *)
-    move=> m Γ x r b S1 S2 K HxS _ [Δs [HE Ht]].
-    have Hx2 : Δs x = Some (SSep r (if b then S1 else S2)).
-      apply: eraseS_sep. by rewrite HE /pcupd eqxx.
-    exists (scupd x (Some (SSep r (SSel S1 S2))) Δs). split.
-    + move=> w. rewrite /scupd.
-      case Ewx : (w == x) => /=.
-      * by move/eqP: Ewx => ->; rewrite HxS.
-      * by rewrite HE /pcupd Ewx.
-    + apply: (ST_Sel (b := b) (S1 := S1) (S2 := S2));
-        first by rewrite scupd_eq.
-      apply: stypedP_ext Ht => w.
-      rewrite /scupd. case Ewx : (w == x) => //.
-      by move/eqP: Ewx => ->; rewrite Hx2.
-  - (* branch *)
-    move=> m Γ x r S1 S2 K1 K2 HxS _ [Δs1 [HE1 Ht1]] _ [Δs2 [HE2 Ht2]].
-    have Hx1 : Δs1 x = Some (SSep r S1).
-      apply: eraseS_sep. by rewrite HE1 /pcupd eqxx.
-    have Hx2 : Δs2 x = Some (SSep r S2).
-      apply: eraseS_sep. by rewrite HE2 /pcupd eqxx.
-    exists (scupd x (Some (SSep r (SBra S1 S2))) Δs1). split.
-    + move=> w. rewrite /scupd.
-      case Ewx : (w == x) => /=.
-      * by move/eqP: Ewx => ->; rewrite HxS.
-      * by rewrite HE1 /pcupd Ewx.
-    + apply: (ST_Bra
-        (Δ1' := scupd x (Some (SSep r (SBra S1 S2))) Δs1)
-        (Δ2' := scupd x (Some (SSep r (SBra S1 S2))) Δs2)
-        (S1 := S1) (S2 := S2)).
-      * by rewrite scupd_eq.
-      * exact: sevolve_refl.
-      * (* the two branch refinements agree up to both-protocols *)
-        move=> w. rewrite /scupd.
-        case Ewx : (w == x); first by left.
-        have EG : eraseS (Δs2 w) = eraseS (Δs1 w).
-          by rewrite HE1 HE2 /pcupd Ewx.
-        move: EG.
-        case E1 : (Δs1 w) => [[ρ1 T1|T1]|];
-          case E2 : (Δs2 w) => [[ρ2 T2|T2]|] => //= EG.
-        -- left. by case: EG => -> ->.
-        -- right. by exists T1, T2.
-        -- by left.
-      * apply: stypedP_ext Ht1 => w.
-        rewrite /scupd. case Ewx : (w == x) => //.
-        by move/eqP: Ewx => ->; rewrite Hx1.
-      * apply: stypedP_ext Ht2 => w.
-        rewrite /scupd. case Ewx : (w == x) => //.
-        by move/eqP: Ewx => ->; rewrite Hx2.
-Qed.
-
-Print Assumptions typed_styped.
 
 (** ** Transport primitives for the pushforward *)
 
@@ -1609,352 +1326,260 @@ Proof.
   by rewrite (spush_up_scons σ Δs (Some (SBoth S)) v).
 Qed.
 
-(** The parallel case: with one substitution on both sides, the
-    pushed component contexts merge to the pushed composite.  The
-    typing link at [z] becomes a [dmerge] live link. *)
+(** ** Pushing a merge forward along a substitution
 
+    [combineP] consumes a [dmerge]; the fundamental theorem's parallel
+    case must therefore produce one between the PUSHED contexts.  The
+    delicate case is the last: the split may have put the two ends of
+    a session on opposite sides, and the substitution may in addition
+    merge two names -- so a live link can be created by σ rather than
+    by the typing. *)
+
+(** Ownership transfers from a component to the composite. *)
+Lemma dmerge_ownL n (Δ1 Δ2 Δ : sctxP n) x :
+  dmerge Δ1 Δ2 Δ -> Δ1 x <> None -> Δ x <> None.
+Proof.
+  move=> Hm H1. case: (Hm x).
+  - by move=> [_ ->].
+  - by move=> [E _]; rewrite E in H1.
+  - by move=> [ρ [T [_ _ ->]]].
+  - by move=> [E _]; rewrite E in H1.
+Qed.
+
+Lemma dmerge_ownR n (Δ1 Δ2 Δ : sctxP n) x :
+  dmerge Δ1 Δ2 Δ -> Δ2 x <> None -> Δ x <> None.
+Proof.
+  move=> Hm H2. case: (Hm x).
+  - by move=> [E _]; rewrite E in H2.
+  - by move=> [_ ->].
+  - by move=> [ρ [T [_ _ ->]]].
+  - by move=> [_ [E _]]; rewrite E in H2.
+Qed.
+
+(** A separate slot in the composite comes from exactly one side. *)
+Lemma dmerge_sepE n (Δ1 Δ2 Δ : sctxP n) x ρ T :
+  dmerge Δ1 Δ2 Δ -> Δ x = Some (SSep ρ T) ->
+  (Δ1 x = Some (SSep ρ T) /\ Δ2 x = None)
+  \/ (Δ2 x = Some (SSep ρ T) /\ Δ1 x = None).
+Proof.
+  move=> Hm E. case: (Hm x).
+  - move=> [E2 ED]. left. by rewrite -ED.
+  - move=> [E1 ED]. right. by rewrite -ED.
+  - by move=> [ρ' [T' [_ _ ED]]]; rewrite ED in E.
+  - by move=> [_ [_ [S0 ED]]]; rewrite ED in E.
+Qed.
+
+(** A both-slot in the composite is one side's both-slot, a live
+    link, or a tombstone. *)
+Lemma dmerge_bothE n (Δ1 Δ2 Δ : sctxP n) x S0 :
+  dmerge Δ1 Δ2 Δ -> Δ x = Some (SBoth S0) ->
+  [\/ Δ1 x = Some (SBoth S0) /\ Δ2 x = None,
+      Δ2 x = Some (SBoth S0) /\ Δ1 x = None,
+      exists ρ T, [/\ Δ1 x = Some (SSep ρ T),
+                      Δ2 x = Some (SSep (flipp ρ) (dual T))
+                    & S0 = pole ρ T]
+    | Δ1 x = None /\ Δ2 x = None].
+Proof.
+  move=> Hm E. case: (Hm x).
+  - move=> [E2 ED]. apply: Or41. by rewrite -ED.
+  - move=> [E1 ED]. apply: Or42. by rewrite -ED.
+  - move=> [ρ [T [Ea Eb ED]]]. apply: Or43. exists ρ, T.
+    rewrite ED in E. by case: E => ->.
+  - move=> [E1 [E2 _]]. by apply: Or44.
+Qed.
+
+(** Validity restricts to the components. *)
+Lemma vok_dmergeL m n (σ : ren m n) (Δ1 Δ2 Δ : sctxP m) :
+  dmerge Δ1 Δ2 Δ -> vok σ Δ -> vok σ Δ1.
+Proof.
+  move=> Hm Hv x1 x2 H1 H2 E.
+  case: (Hv x1 x2 (dmerge_ownL Hm H1) (dmerge_ownL Hm H2) E) => [->|];
+    first by left.
+  move=> [ρ [T [Ea Eb]]]. right. exists ρ, T.
+  case: (dmerge_sepE Hm Ea) => -[Ea' Ea''];
+    last by rewrite Ea'' in H1.
+  case: (dmerge_sepE Hm Eb) => -[Eb' Eb''];
+    last by rewrite Eb'' in H2.
+  by split.
+Qed.
+
+Lemma vok_dmergeR m n (σ : ren m n) (Δ1 Δ2 Δ : sctxP m) :
+  dmerge Δ1 Δ2 Δ -> vok σ Δ -> vok σ Δ2.
+Proof.
+  move=> Hm Hv x1 x2 H1 H2 E.
+  case: (Hv x1 x2 (dmerge_ownR Hm H1) (dmerge_ownR Hm H2) E) => [->|];
+    first by left.
+  move=> [ρ [T [Ea Eb]]]. right. exists ρ, T.
+  case: (dmerge_sepE Hm Ea) => -[Ea' Ea''];
+    first by rewrite Ea'' in H1.
+  case: (dmerge_sepE Hm Eb) => -[Eb' Eb''];
+    first by rewrite Eb'' in H2.
+  by split.
+Qed.
+
+(** A component's owned preimages of an image name are among the
+    composite's. *)
+Lemma spush_none_of_none m n (σ : ren m n) (Δc Δ : sctxP m) w :
+  (forall x, Δc x <> None -> Δ x <> None) ->
+  spush σ Δ w = None -> spush σ Δc w = None.
+Proof.
+  move=> Hsub HN. apply: spush_none_fwd => x Ex.
+  case E : (Δc x) => [e|] //.
+  have : Δ x = None by apply: (spush_none_inv HN).
+  move=> ED. case: (Hsub x); by rewrite ?E ?ED.
+Qed.
+
+(** The pushforward of a merge.  Read the composite's slot above [w]:
+    it is empty, a separate slot with a unique owned preimage, or a
+    both-slot -- and a both-slot arises either from a single preimage
+    (which the merge then explains) or from a σ-merged dual pair,
+    whose two names the split may have sent to opposite sides. *)
+Lemma dmerge_spush m n (σ : ren m n) (Δ1 Δ2 Δ : sctxP m) :
+  dmerge Δ1 Δ2 Δ -> vok σ Δ ->
+  dmerge (spush σ Δ1) (spush σ Δ2) (spush σ Δ).
+Proof.
+  move=> Hm Hv w.
+  have Hv1 := vok_dmergeL Hm Hv.
+  have Hv2 := vok_dmergeR Hm Hv.
+  have HsubL : forall x, Δ1 x <> None -> Δ x <> None.
+    move=> x. exact: dmerge_ownL Hm.
+  have HsubR : forall x, Δ2 x <> None -> Δ x <> None.
+    move=> x. exact: dmerge_ownR Hm.
+  case E : (spush σ Δ w) => [e|]; last first.
+  - (* nothing owned above w *)
+    apply: Or41.
+    by rewrite (spush_none_of_none HsubL E) (spush_none_of_none HsubR E).
+  - case: e E => [ρ T|S0] E.
+    + (* separate slot: a unique owned preimage, on one side *)
+      case: (spush_sep_inv Hv E) => x [Ex Dx Hu].
+      have HuL : forall x', σ x' = w -> Δ1 x' <> None -> x' = x.
+        move=> x' Ex' Ho. apply: Hu => //. exact: HsubL.
+      have HuR : forall x', σ x' = w -> Δ2 x' <> None -> x' = x.
+        move=> x' Ex' Ho. apply: Hu => //. exact: HsubR.
+      case: (dmerge_sepE Hm Dx) => -[D1 D2].
+      * have Ho1 : Δ1 x <> None by rewrite D1.
+        apply: Or41. split.
+        -- apply: spush_none_fwd => x' Ex'.
+           case Ec : (Δ2 x') => [e'|] //.
+           have Ho : Δ2 x' <> None by rewrite Ec.
+           by rewrite (HuR x' Ex' Ho) D2 in Ec.
+        -- by rewrite (spush_solo Ex Ho1 HuL) D1.
+      * have Ho2 : Δ2 x <> None by rewrite D1.
+        apply: Or42. split.
+        -- apply: spush_none_fwd => x' Ex'.
+           case Ec : (Δ1 x') => [e'|] //.
+           have Ho : Δ1 x' <> None by rewrite Ec.
+           by rewrite (HuL x' Ex' Ho) D2 in Ec.
+        -- by rewrite (spush_solo Ex Ho2 HuR) D1.
+    + (* both-slot *)
+      case: (spush_both_inv Hv E) => [[x [Ex Dx Hu]]|].
+      * (* one preimage: the merge explains the slot *)
+        have HuL : forall x', σ x' = w -> Δ1 x' <> None -> x' = x.
+          move=> x' Ex' Ho. apply: Hu => //. exact: HsubL.
+        have HuR : forall x', σ x' = w -> Δ2 x' <> None -> x' = x.
+          move=> x' Ex' Ho. apply: Hu => //. exact: HsubR.
+        have HnL : Δ1 x = None -> spush σ Δ1 w = None.
+          move=> D1. apply: spush_none_fwd => x' Ex'.
+          case Ec : (Δ1 x') => [e'|] //.
+          have Ho : Δ1 x' <> None by rewrite Ec.
+          by rewrite (HuL x' Ex' Ho) D1 in Ec.
+        have HnR : Δ2 x = None -> spush σ Δ2 w = None.
+          move=> D2. apply: spush_none_fwd => x' Ex'.
+          case Ec : (Δ2 x') => [e'|] //.
+          have Ho : Δ2 x' <> None by rewrite Ec.
+          by rewrite (HuR x' Ex' Ho) D2 in Ec.
+        case: (dmerge_bothE Hm Dx).
+        -- move=> [D1 D2]. have Ho1 : Δ1 x <> None by rewrite D1.
+           apply: Or41. split; first exact: HnR.
+           by rewrite (spush_solo Ex Ho1 HuL) D1.
+        -- move=> [D2 D1]. have Ho2 : Δ2 x <> None by rewrite D2.
+           apply: Or42. split; first exact: HnL.
+           by rewrite (spush_solo Ex Ho2 HuR) D2.
+        -- move=> [ρ [T [D1 D2 ES]]].
+           have Ho1 : Δ1 x <> None by rewrite D1.
+           have Ho2 : Δ2 x <> None by rewrite D2.
+           apply: Or43. exists ρ, T.
+           rewrite (spush_solo Ex Ho1 HuL) (spush_solo Ex Ho2 HuR) D1 D2.
+           by rewrite ES.
+        -- move=> [D1 D2]. apply: Or44.
+           split; first exact: HnL. split; first exact: HnR.
+           by exists S0.
+      * (* a σ-merged dual pair: the split may separate its two ends *)
+        move=> [x0 [x1 [ρ [T [Ex0 Ex1 Hne [D0 D1] ES]]]]].
+        have Hcol : σ x0 = σ x1 by rewrite Ex0 Ex1.
+        have Honly : forall x', σ x' = w -> Δ x' <> None ->
+            x' = x0 \/ x' = x1.
+          move=> x' Ex' Ho.
+          apply: (vok_no_triple Hv D0 D1 Hne Hcol Ho).
+          by rewrite Ex' Ex0.
+        case: (dmerge_sepE Hm D0) => -[A0 B0];
+          case: (dmerge_sepE Hm D1) => -[A1 B1].
+        -- (* both ends on the left *)
+           apply: Or41. split.
+           ++ apply: spush_none_fwd => x' Ex'.
+              case Ec : (Δ2 x') => [e'|] //.
+              have Ho : Δ x' <> None by apply: HsubR; rewrite Ec.
+              by case: (Honly x' Ex' Ho) => Exx; rewrite Exx ?B0 ?B1 in Ec.
+           ++ by rewrite (spush_pair Hv1 Ex0 Ex1 Hne A0 A1) ES.
+        -- (* x0 left, x1 right: σ creates the link across the par *)
+           have Ho1 : Δ1 x0 <> None by rewrite A0.
+           have Ho2 : Δ2 x1 <> None by rewrite A1.
+           have HuL : forall x', σ x' = w -> Δ1 x' <> None -> x' = x0.
+             move=> x' Ex' Ho.
+             case: (Honly x' Ex' (HsubL _ Ho)) => // Exx.
+             by rewrite Exx B1 in Ho.
+           have HuR : forall x', σ x' = w -> Δ2 x' <> None -> x' = x1.
+             move=> x' Ex' Ho.
+             case: (Honly x' Ex' (HsubR _ Ho)) => // Exx.
+             by rewrite Exx B0 in Ho.
+           apply: Or43. exists ρ, T.
+           rewrite (spush_solo Ex0 Ho1 HuL) (spush_solo Ex1 Ho2 HuR).
+           rewrite A0 A1. by rewrite ES.
+        -- (* x0 right, x1 left *)
+           have Ho1 : Δ1 x1 <> None by rewrite A1.
+           have Ho2 : Δ2 x0 <> None by rewrite A0.
+           have HuL : forall x', σ x' = w -> Δ1 x' <> None -> x' = x1.
+             move=> x' Ex' Ho.
+             case: (Honly x' Ex' (HsubL _ Ho)) => // Exx.
+             by rewrite Exx B0 in Ho.
+           have HuR : forall x', σ x' = w -> Δ2 x' <> None -> x' = x0.
+             move=> x' Ex' Ho.
+             case: (Honly x' Ex' (HsubR _ Ho)) => // Exx.
+             by rewrite Exx B1 in Ho.
+           apply: Or43. exists (flipp ρ), (dual T).
+           rewrite (spush_solo Ex1 Ho1 HuL) (spush_solo Ex0 Ho2 HuR).
+           rewrite A0 A1 flipp_invol dual_involutive ES.
+           by rewrite -pole_flip_dual.
+        -- (* both ends on the right *)
+           apply: Or42. split.
+           ++ apply: spush_none_fwd => x' Ex'.
+              case Ec : (Δ1 x') => [e'|] //.
+              have Ho : Δ x' <> None by apply: HsubL; rewrite Ec.
+              by case: (Honly x' Ex' Ho) => Exx; rewrite Exx ?B0 ?B1 in Ec.
+           ++ by rewrite (spush_pair Hv2 Ex0 Ex1 Hne A0 A1) ES.
+Qed.
+
+(** ** σ-compatibility: parallel composition
+
+    With the pushforward in hand this is immediate -- the cut lemma
+    does all the work, and it never needed the single-link
+    restriction. *)
 Lemma fcompat_par m n (σ : ren m n) (Δs Δs1 Δs2 : sctxP m)
-    (z : ch m) (r : pol) T (P Q : procP m) :
+    (P Q : procP m) :
   vok σ Δs ->
-  Δs1 z = Some (SSep r T) ->
-  Δs2 z = Some (SSep (flipp r) (dual T)) ->
-  (forall x, x != z ->
-     (Δs1 x = None /\ Δs x = Δs2 x) \/ (Δs2 x = None /\ Δs x = Δs1 x)) ->
-  Δs z = Some (SBoth (pole r T)) ->
+  dmerge Δs1 Δs2 Δs ->
   (forall n' (σ' : ren m n'), vok σ' Δs1 ->
      SEMP (spush σ' Δs1) (psubst σ' P)) ->
   (forall n' (σ' : ren m n'), vok σ' Δs2 ->
      SEMP (spush σ' Δs2) (psubst σ' Q)) ->
   SEMP (spush σ Δs) (psubst σ (P ∥ Q)).
 Proof.
-  move=> Hv Dz1 Dz2 HF Dz IH1 IH2.
-  (* component ownership embeds into the composite *)
-  have Hsub1 : forall x, Δs1 x <> None -> Δs x <> None.
-    move=> x Ho1.
-    case Exz : (x == z).
-    + move/eqP: Exz => ->. by rewrite Dz.
-    + have Hne : x != z by rewrite Exz.
-      case: (HF _ Hne) => -[Ea Eb]; first by rewrite Ea in Ho1.
-      by rewrite Eb.
-  have Hsub2 : forall x, Δs2 x <> None -> Δs x <> None.
-    move=> x Ho2.
-    case Exz : (x == z).
-    + move/eqP: Exz => ->. by rewrite Dz.
-    + have Hne : x != z by rewrite Exz.
-      case: (HF _ Hne) => -[Ea Eb]; last by rewrite Ea in Ho2.
-      by rewrite Eb.
-  (* slots transfer off the link *)
-  have Hslot1 : forall x, x != z -> Δs1 x <> None -> Δs x = Δs1 x.
-    move=> x Hne Ho1.
-    case: (HF _ Hne) => -[Ea Eb]; first by rewrite Ea in Ho1.
-    exact: Eb.
-  have Hslot2 : forall x, x != z -> Δs2 x <> None -> Δs x = Δs2 x.
-    move=> x Hne Ho2.
-    case: (HF _ Hne) => -[Ea Eb]; last by rewrite Ea in Ho2.
-    exact: Eb.
-  (* component validity *)
-  have Hv1 : vok σ Δs1.
-    move=> x1 x2 H1 H2 E.
-    case: (Hv x1 x2 (Hsub1 _ H1) (Hsub1 _ H2) E) => [-> | ]; first by left.
-    move=> [ρ' [T' [Da Db]]].
-    have Enz1 : x1 != z.
-      apply/eqP => Ez. by rewrite Ez Dz in Da.
-    have Enz2 : x2 != z.
-      apply/eqP => Ez. by rewrite Ez Dz in Db.
-    right. exists ρ', T'.
-    by rewrite -(Hslot1 _ Enz1 H1) -(Hslot1 _ Enz2 H2).
-  have Hv2 : vok σ Δs2.
-    move=> x1 x2 H1 H2 E.
-    case: (Hv x1 x2 (Hsub2 _ H1) (Hsub2 _ H2) E) => [-> | ]; first by left.
-    move=> [ρ' [T' [Da Db]]].
-    have Enz1 : x1 != z.
-      apply/eqP => Ez. by rewrite Ez Dz in Da.
-    have Enz2 : x2 != z.
-      apply/eqP => Ez. by rewrite Ez Dz in Db.
-    right. exists ρ', T'.
-    by rewrite -(Hslot2 _ Enz1 H1) -(Hslot2 _ Enz2 H2).
-  (* the pushed merge *)
-  have Hm : dmerge (spush σ Δs1) (spush σ Δs2) (spush σ Δs).
-    move=> w.
-    case E : (spush σ Δs w) => [e|]; last first.
-    - (* composite silent: both components silent *)
-      have E1 : spush σ Δs1 w = None.
-        apply: spush_none_fwd => x Ex.
-        case E1 : (Δs1 x) => [e1|] //.
-        have := spush_none_inv E Ex.
-        move=> ED. case: (Hsub1 x _ ED). by rewrite E1.
-      have E2 : spush σ Δs2 w = None.
-        apply: spush_none_fwd => x Ex.
-        case E2 : (Δs2 x) => [e2|] //.
-        have := spush_none_inv E Ex.
-        move=> ED. case: (Hsub2 x _ ED). by rewrite E2.
-      apply: Or41. by rewrite E1 E2.
-    - (* composite owned at w *)
-      have [x0 [Ex0 Hox0]] : exists x0, σ x0 = w /\ Δs x0 <> None.
-        apply: spush_owned_inv. by rewrite E.
-      case Ez0 : (x0 == z).
-      + (* the link name *)
-        move/eqP: Ez0 Ex0 Hox0 => -> Ex0 Hox0.
-        have Hz1 : Δs1 z <> None by rewrite Dz1.
-        have Hz2 : Δs2 z <> None by rewrite Dz2.
-        have Huz : forall x', σ x' = w -> Δs x' <> None -> x' = z.
-          move=> x' Ex' Hox'.
-          case: (Hv x' z Hox' _ _) => //.
-            by rewrite Ex' Ex0.
-          move=> [ρ' [T' [_ Db]]].
-          by rewrite Dz in Db; case: Db.
-        have Huz1 : forall x', σ x' = w -> Δs1 x' <> None -> x' = z.
-          move=> x' Ex' H1. exact: Huz Ex' (Hsub1 _ H1).
-        have Huz2 : forall x', σ x' = w -> Δs2 x' <> None -> x' = z.
-          move=> x' Ex' H1. exact: Huz Ex' (Hsub2 _ H1).
-        apply: Or43. exists r, T.
-        rewrite (spush_solo (x := z) Ex0 Hz1 Huz1) Dz1.
-        rewrite (spush_solo (x := z) Ex0 Hz2 Huz2) Dz2.
-        by rewrite (spush_solo (x := z) Ex0 Hox0 Huz) Dz in E;
-          case: E => <-.
-      + (* a frame name *)
-        have Hnez : x0 != z by rewrite Ez0.
-        (* second composite preimage? *)
-        case: (vok_split Hv Hox0)
-          => [Huniq|[xc [ρc [Tc [Hnec Ecc Dc0 Dcc Hu2]]]]].
-        * (* solo in the composite *)
-          case: (HF _ Hnez) => -[Ea Eb].
-          -- (* owned by the right component *)
-             have Ho2 : Δs2 x0 <> None by rewrite -Eb.
-             apply: Or42.
-             have E1 : spush σ Δs1 w = None.
-               apply: spush_none_fwd => x Ex.
-               case E1 : (Δs1 x) => [e1|] //.
-               have Exx : x = x0.
-                 apply: Huniq; first by rewrite Ex Ex0.
-                 apply: Hsub1. by rewrite E1.
-               by rewrite Exx Ea in E1.
-             have Hu2' : forall x', σ x' = w -> Δs2 x' <> None -> x' = x0.
-               move=> x' Ex' H2.
-               apply: Huniq; first by rewrite Ex' Ex0.
-               exact: Hsub2.
-             rewrite E1 (spush_solo (x := x0) Ex0 Ho2 Hu2') -Eb.
-             rewrite -Ex0 in E.
-             by rewrite (spush_solo (x := x0) erefl Hox0 Huniq) in E;
-               rewrite E.
-          -- (* owned by the left component *)
-             have Ho1 : Δs1 x0 <> None by rewrite -Eb.
-             apply: Or41.
-             have E2 : spush σ Δs2 w = None.
-               apply: spush_none_fwd => x Ex.
-               case E2 : (Δs2 x) => [e2|] //.
-               have Exx : x = x0.
-                 apply: Huniq; first by rewrite Ex Ex0.
-                 apply: Hsub2. by rewrite E2.
-               by rewrite Exx Ea in E2.
-             have Hu1' : forall x', σ x' = w -> Δs1 x' <> None -> x' = x0.
-               move=> x' Ex' H1.
-               apply: Huniq; first by rewrite Ex' Ex0.
-               exact: Hsub1.
-             rewrite E2 (spush_solo (x := x0) Ex0 Ho1 Hu1') -Eb.
-             rewrite -Ex0 in E.
-             by rewrite (spush_solo (x := x0) erefl Hox0 Huniq) in E;
-               rewrite E.
-        * (* a merged pair in the composite *)
-          have Hnczz : xc != z.
-            apply/eqP => Ez. by rewrite Ez Dz in Dcc.
-          have Hoc : Δs xc <> None by rewrite Dcc.
-          (* place each end in its component *)
-          have Hplace : forall (xa : ch m) ρa Ta, xa != z ->
-              Δs xa = Some (SSep ρa Ta) ->
-              (Δs1 xa = Some (SSep ρa Ta) /\ Δs2 xa = None)
-              \/ (Δs2 xa = Some (SSep ρa Ta) /\ Δs1 xa = None).
-            move=> xa ρa Ta Hnea Da.
-            case: (HF _ Hnea) => -[Ea Eb].
-            + right. split=> //. by rewrite -Eb.
-            + left. split=> //. by rewrite -Eb.
-          have Exc0 : σ xc = w by rewrite Ecc Ex0.
-          have EC : spush σ Δs w = Some (SBoth (pole ρc Tc)).
-            exact (spush_pair (x0 := x0) (x1 := xc)
-                     Hv Ex0 Exc0 Hnec Dc0 Dcc).
-          rewrite E in EC. case: EC => Ee. subst e.
-          case: (Hplace _ _ _ Hnez Dc0) => -[Pa1 Pa2];
-            case: (Hplace _ _ _ Hnczz Dcc) => -[Pb1 Pb2].
-          -- (* both ends on the left *)
-             apply: Or41.
-             have E2 : spush σ Δs2 w = None.
-               apply: spush_none_fwd => x Ex.
-               case E2 : (Δs2 x) => [e2|] //.
-               have : x = x0 \/ x = xc.
-                 apply: Hu2; first by rewrite Ex Ex0.
-                 apply: Hsub2. by rewrite E2.
-               by case=> Exx; rewrite Exx ?Pa2 ?Pb2 in E2.
-             have E1 : spush σ Δs1 w = Some (SBoth (pole ρc Tc)).
-               exact (spush_pair (x0 := x0) (x1 := xc)
-                        Hv1 Ex0 Exc0 Hnec Pa1 Pb1).
-             split; first exact: E2.
-             by rewrite E1.
-          -- (* split pair: x0 on the left, xc on the right *)
-             apply: Or43. exists ρc, Tc.
-             have Ho1 : Δs1 x0 <> None by rewrite Pa1.
-             have Ho2 : Δs2 xc <> None by rewrite Pb1.
-             have Hu1' : forall x', σ x' = w -> Δs1 x' <> None ->
-                 x' = x0.
-               move=> x' Ex' H1.
-               have : x' = x0 \/ x' = xc.
-                 apply: Hu2; first by rewrite Ex' Ex0.
-                 exact: Hsub1.
-               case=> // Exx. by rewrite Exx Pb2 in H1.
-             have Hu2' : forall x', σ x' = w -> Δs2 x' <> None ->
-                 x' = xc.
-               move=> x' Ex' H2.
-               have : x' = x0 \/ x' = xc.
-                 apply: Hu2; first by rewrite Ex' Ex0.
-                 exact: Hsub2.
-               case=> // Exx. by rewrite Exx Pa2 in H2.
-             rewrite (spush_solo (x := x0) Ex0 Ho1 Hu1') Pa1.
-             rewrite (spush_solo (x := xc) Exc0 Ho2 Hu2') Pb1.
-             by split.
-          -- (* split pair: xc on the left, x0 on the right *)
-             apply: Or43. exists (flipp ρc), (dual Tc).
-             have Ho1 : Δs1 xc <> None by rewrite Pb1.
-             have Ho2 : Δs2 x0 <> None by rewrite Pa1.
-             have Hu1' : forall x', σ x' = w -> Δs1 x' <> None ->
-                 x' = xc.
-               move=> x' Ex' H1.
-               have : x' = x0 \/ x' = xc.
-                 apply: Hu2; first by rewrite Ex' Ex0.
-                 exact: Hsub1.
-               case=> // Exx. by rewrite Exx Pa2 in H1.
-             have Hu2' : forall x', σ x' = w -> Δs2 x' <> None ->
-                 x' = x0.
-               move=> x' Ex' H2.
-               have : x' = x0 \/ x' = xc.
-                 apply: Hu2; first by rewrite Ex' Ex0.
-                 exact: Hsub2.
-               case=> // Exx. by rewrite Exx Pb2 in H2.
-             rewrite (spush_solo (x := xc) Exc0 Ho1 Hu1') Pb1.
-             rewrite (spush_solo (x := x0) Ex0 Ho2 Hu2') Pa1.
-             rewrite flipp_invol dual_involutive pole_flip_dual.
-             by split.
-          -- (* both ends on the right *)
-             apply: Or42.
-             have E1 : spush σ Δs1 w = None.
-               apply: spush_none_fwd => x Ex.
-               case E1 : (Δs1 x) => [e1|] //.
-               have : x = x0 \/ x = xc.
-                 apply: Hu2; first by rewrite Ex Ex0.
-                 apply: Hsub1. by rewrite E1.
-               by case=> Exx; rewrite Exx ?Pa2 ?Pb2 in E1.
-             have E2 : spush σ Δs2 w = Some (SBoth (pole ρc Tc)).
-               exact (spush_pair (x0 := x0) (x1 := xc)
-                        Hv2 Ex0 Exc0 Hnec Pa1 Pb1).
-             split; first exact: E1.
-             by rewrite E2.
-  (* conclude by the parallel combination *)
-  move=> k.
-  apply: (combineP (Δ1 := spush σ Δs1) (Δ2 := spush σ Δs2)) => //.
-  - exact: IH1.
-  - exact: IH2.
+  move=> Hv Hm IH1 IH2 k.
+  apply: (combineP (Δ1 := spush σ Δs1) (Δ2 := spush σ Δs2)).
+  - exact: dmerge_spush Hm Hv.
+  - exact: (IH1 _ _ (vok_dmergeL Hm Hv) k).
+  - exact: (IH2 _ _ (vok_dmergeR Hm Hv) k).
 Qed.
 
-(** ** The fundamental theorem *)
-
-Theorem fundamentalP m (Δs : sctxP m) (P : procP m) :
-  stypedP Δs P ->
-  forall n (σ : ren m n), vok σ Δs ->
-  SEMP (spush σ Δs) (psubst σ P).
-Proof.
-  elim=> {m Δs P}.
-  - move=> m Δ HD n σ Hv. exact: fcompat_end.
-  - move=> m Δ x r K HxS _ IH n σ Hv.
-    exact: fcompat_close Hv HxS IH.
-  - move=> m Δ x r K HxS _ IH n σ Hv.
-    exact: fcompat_wait Hv HxS IH.
-  - move=> m Δ x yp r rd T S2 K HxS HyS _ IH n σ Hv.
-    exact: fcompat_del Hv HxS HyS IH.
-  - move=> m Δ x r rd T S2 K HxS _ IH n σ Hv.
-    exact: fcompat_ins Hv HxS IH.
-  - move=> m Δ Δ1 Δ2 z r T P Q _ IH1 _ IH2 Dz1 Dz2 HF Dz n σ Hv.
-    exact: fcompat_par Hv Dz1 Dz2 HF Dz IH1 IH2.
-  - move=> m Δ S B _ IH n σ Hv.
-    exact: fcompat_res IH Hv.
-  - move=> m Δ x r b S1 S2 K HxS _ IH n σ Hv.
-    exact: fcompat_sel Hv HxS IH.
-  - move=> m Δ Δ1' Δ2' x r S1 S2 K1 K2 HxS Hev1 Hev2 _ IH1 _ IH2 n σ Hv.
-    exact: fcompat_bra Hv HxS Hev1 Hev2 IH1 IH2.
-Qed.
-
-Print Assumptions fundamentalP.
-
-(** ** The identity instance *)
-
-Lemma vok_id m (Δs : sctxP m) : vok id_ren Δs.
-Proof. move=> x1 x2 _ _ E. by left. Qed.
-
-Lemma spush_id m (Δs : sctxP m) w : spush id_ren Δs w = Δs w.
-Proof.
-  case E : (Δs w) => [e|].
-  - rewrite -E.
-    apply: (spush_solo (x := w)) => //; first by rewrite E.
-  - have Hfr : forall x : ch m, id_ren x = w -> Δs x = None.
-      move=> x Ex. move: Ex. rewrite /id_ren => ->. exact: E.
-    exact: (spush_none_fwd Hfr).
-Qed.
-
-(** ** End-to-end: typed processes are error-free *)
-
-Theorem fundamental_typedP m (Γ : pctx m) (P : procP m) :
-  typedP Γ P ->
-  exists Δs : sctxP m,
-    (forall x, eraseS (Δs x) = Γ x) /\ SEMP Δs P.
-Proof.
-  move=> Ht.
-  case: (typed_styped Ht) => Δs [HE Hst].
-  exists Δs. split=> //.
-  have := fundamentalP Hst (@vok_id m Δs).
-  rewrite psubst_id.
-  move=> HS k.
-  apply: EsemP_ext (HS k) => v. exact: spush_id.
-Qed.
-
-Theorem error_free_typedP m (Γ : pctx m) (P : procP m) :
-  typedP Γ P -> error_freeP P.
-Proof.
-  move=> Ht.
-  case: (fundamental_typedP Ht) => Δs [_ HS].
-  exact: adequacyP HS.
-Qed.
-
-Print Assumptions fundamental_typedP.
-Print Assumptions error_free_typedP.
-
-(** ** Sanity: a choice cut, typed and hence error-free *)
-
-Example choice_cut_typed :
-  typedP pcempty
-    ((ν) ( ((zero, pos) ◁ true ․ ((zero, pos) !․ ∅))
-         ∥ ((zero, neg) ▷ ( ((zero, neg) ?․ ∅)
-                          | ((zero, neg) ?․ ∅) )) ) : procP 0).
-Proof.
-  apply: TP_Res.
-  apply: (TP_Par
-    (Δ1 := scons (Some (Sep pos (SSel SClose SClose))) pcempty)
-    (Δ2 := scons (Some (Sep neg (SBra SWait SWait))) pcempty)
-    (z := zero) (r := pos) (T := SSel SClose SClose)) => //.
-  - apply: (TP_Sel (b := true) (S1 := SClose) (S2 := SClose)) => //.
-    apply: TP_Close.
-    { rewrite /pcupd. by case: eqP. }
-    apply: TP_End => -[[]|] //=.
-  - apply: (TP_Bra (S1 := SWait) (S2 := SWait)) => //.
-    + apply: TP_Wait.
-      { rewrite /pcupd. by case: eqP. }
-      apply: TP_End => -[[]|] //=.
-    + apply: TP_Wait.
-      { rewrite /pcupd. by case: eqP. }
-      apply: TP_End => -[[]|] //=.
-  - by move=> [[]|].
-Qed.
-
-Example choice_cut_error_free :
-  error_freeP ((ν) ( ((zero, pos) ◁ true ․ ((zero, pos) !․ ∅))
-             ∥ ((zero, neg) ▷ ( ((zero, neg) ?․ ∅)
-                              | ((zero, neg) ?․ ∅) )) ) : procP 0).
-Proof. exact: error_free_typedP choice_cut_typed. Qed.
-
-Print Assumptions choice_cut_error_free.
+Print Assumptions dmerge_spush.
+Print Assumptions fcompat_par.
