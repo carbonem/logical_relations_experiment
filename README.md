@@ -9,8 +9,8 @@ close facing a delegation, a selection facing a delegation, …).
 The headline theorem, in `error_freedom/PolFN.v`:
 
 ```coq
-Theorem safe_typedP m (Γ : pctx m) (P : procP m) :
-  typedP Γ P -> safeP P.
+Theorem error_free_typedP m (Γ : pctx m) (P : procP m) :
+  typedP Γ P -> error_freeP P.
 ```
 
 No `Admitted`, and every result is audited: 16 `Print Assumptions`
@@ -44,14 +44,14 @@ dependency order:
 | `PolTypes.v`  | actions, compatibility, session types, duality |
 | `PolProc.v`   | polarized process syntax, substitution |
 | `PolLTS.v`    | seven visible-action families + τ; inversion suite |
-| `PolErr.v`    | offers, the error predicate, safety |
+| `PolErr.v`    | offers, the error predicate, error freedom |
 | `PolTyping.v` | session typing |
 | `PolLogRel.v` | the step-indexed logical relation; adequacy |
 | `PolEquiv.v`  | backward equivariance of the LTS |
 | `PolCompat.v` | offer determination; the ∅ rule |
 | `PolSem.v`    | slot order, substitution lemma for the relation |
 | `PolComb.v`   | the ν rule and the parallel cut |
-| `PolFN.v`     | semantic typing, the fundamental theorem, safety |
+| `PolFN.v`     | semantic typing, the fundamental theorem, error freedom |
 
 Two things the calculus does deliberately:
 
@@ -69,7 +69,7 @@ Two things the calculus does deliberately:
 `cemetery/` holds two earlier presentations of the same theorem that
 were abandoned, each at the wall that killed it, together with an
 `attic/` of lemmas from the live line that are true, proved, and
-unreachable from `safe_typedP`. Everything in there still compiles;
+unreachable from `error_free_typedP`. Everything in there still compiles;
 see `cemetery/README.md`.
 
 `tait/` is Harper's *How to (Re)Invent Tait's Method* mechanized for

@@ -1,7 +1,7 @@
 (** * The attic: true, proved, and unused
 
     Every lemma below was proved on the live line and is no longer
-    reachable from [safe_typedP].  They are kept because each records
+    reachable from [error_free_typedP].  They are kept because each records
     a design decision, not because anything needs them:
 
     - the FORWARD equivariance stack ([lts*P_ren], [pren_flip],
@@ -21,7 +21,7 @@
       [fcompat_close], [fcompat_wait], [fcompat_del] of [PolFN.v],
       which must additionally handle a MERGED subject.  [compat_endP]
       is not here: it survived, [fcompat_end] still calls it.
-    - the [safeP] and [pcupd] APIs, and assorted scaffolding
+    - the [error_freeP] and [pcupd] APIs, and assorted scaffolding
       ([sle_econsume], [spush_both_inv], [srecv_neqT], ...) built
       while a design was being searched for and abandoned when the
       design changed.
@@ -87,15 +87,15 @@ Qed.
 
 (** ** The safety API *)
 
-Lemma safeP_nerr n (P : procP n) : safeP P -> ~ errP P.
+Lemma error_freeP_nerr n (P : procP n) : error_freeP P -> ~ errP P.
 Proof. move=> H. exact: H (PTS_refl _). Qed.
 
-Lemma safeP_step n (P Q : procP n) : safeP P -> ltstP P Q -> safeP Q.
+Lemma error_freeP_step n (P Q : procP n) : error_freeP P -> ltstP P Q -> error_freeP Q.
 Proof.
   move=> HS Hst R HQR. apply: HS. exact: PTS_step Hst HQR.
 Qed.
 
-Lemma safeP_ltsts n (P Q : procP n) : safeP P -> P —τ*→ Q -> safeP Q.
+Lemma error_freeP_ltsts n (P Q : procP n) : error_freeP P -> P —τ*→ Q -> error_freeP Q.
 Proof.
   move=> HS Hred R HQR. apply: HS. exact: ltstsP_trans Hred HQR.
 Qed.

@@ -26,7 +26,7 @@
       protocols kept), and the bridge from [typedP];
     - the σ-parametric fundamental theorem, by induction on
       [stypedP];
-    - end-to-end safety at [σ = id]. *)
+    - end-to-end error freedom at [σ = id]. *)
 
 From mathcomp Require Import all_ssreflect.
 From Stdlib Require Import Eqdep_dec PeanoNat.
@@ -1897,7 +1897,7 @@ Proof.
     exact: (spush_none_fwd Hfr).
 Qed.
 
-(** ** End-to-end: typed processes are safe *)
+(** ** End-to-end: typed processes are error-free *)
 
 Theorem fundamental_typedP m (Γ : pctx m) (P : procP m) :
   typedP Γ P ->
@@ -1913,8 +1913,8 @@ Proof.
   apply: EsemP_ext (HS k) => v. exact: spush_id.
 Qed.
 
-Theorem safe_typedP m (Γ : pctx m) (P : procP m) :
-  typedP Γ P -> safeP P.
+Theorem error_free_typedP m (Γ : pctx m) (P : procP m) :
+  typedP Γ P -> error_freeP P.
 Proof.
   move=> Ht.
   case: (fundamental_typedP Ht) => Δs [_ HS].
@@ -1922,9 +1922,9 @@ Proof.
 Qed.
 
 Print Assumptions fundamental_typedP.
-Print Assumptions safe_typedP.
+Print Assumptions error_free_typedP.
 
-(** ** Sanity: a choice cut, typed and hence safe *)
+(** ** Sanity: a choice cut, typed and hence error-free *)
 
 Example choice_cut_typed :
   typedP pcempty
@@ -1951,10 +1951,10 @@ Proof.
   - by move=> [[]|].
 Qed.
 
-Example choice_cut_safe :
-  safeP ((ν) ( ((zero, pos) ◁ true ․ ((zero, pos) !․ ∅))
+Example choice_cut_error_free :
+  error_freeP ((ν) ( ((zero, pos) ◁ true ․ ((zero, pos) !․ ∅))
              ∥ ((zero, neg) ▷ ( ((zero, neg) ?․ ∅)
                               | ((zero, neg) ?․ ∅) )) ) : procP 0).
-Proof. exact: safe_typedP choice_cut_typed. Qed.
+Proof. exact: error_free_typedP choice_cut_typed. Qed.
 
-Print Assumptions choice_cut_safe.
+Print Assumptions choice_cut_error_free.

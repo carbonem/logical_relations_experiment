@@ -14,8 +14,8 @@
 
     Design note: [compat] is a boolean, so evidence of a mismatch is
     positive and decidable -- a pair of actions plus [erefl].  No
-    negated proposition occurs inside the error predicate.  Safety
-    ([PolErr.safeP]) is the one genuinely negative notion in the
+    negated proposition occurs inside the error predicate.  Error freedom
+    ([PolErr.error_freeP]) is the one genuinely negative notion in the
     development; the logical relation built on top has positive,
     conditional clauses and meets errors only as the final
     contradiction in adequacy.

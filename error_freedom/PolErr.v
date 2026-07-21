@@ -101,8 +101,8 @@ Inductive errP : forall n, procP n -> Prop :=
 | EP_ParR : forall n (P Q : procP n),
     errP Q -> errP (P ∥ Q).
 
-(** ** Safety: no reachable error *)
-Definition safeP {n : nat} (P : procP n) : Prop :=
+(** ** Error freedom: no reachable error *)
+Definition error_freeP {n : nat} (P : procP n) : Prop :=
   forall Q, P —τ*→ Q -> ~ errP Q.
 
 (** ** Examples *)

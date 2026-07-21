@@ -338,7 +338,7 @@ Lemma errP_esemP n (P : procP n) :
   errP P -> forall Δ : sctxP n, ~ EsemP 1 Δ P.
 Proof. move=> H Δ [CD _ _]. exact (errP_conformD H CD). Qed.
 
-Theorem adequacyP n (Δ : sctxP n) (P : procP n) : Δ ⊨p P -> safeP P.
+Theorem adequacyP n (Δ : sctxP n) (P : procP n) : Δ ⊨p P -> error_freeP P.
 Proof.
   move=> HS Q HPQ Herr.
   have HF : forall j, exists Δj : sctxP n, EsemP j Δj P.
@@ -347,7 +347,7 @@ Proof.
   exact: (errP_esemP Herr HE).
 Qed.
 
-Corollary adequacyP_closed (P : procP 0) : scempty ⊨p P -> safeP P.
+Corollary adequacyP_closed (P : procP 0) : scempty ⊨p P -> error_freeP P.
 Proof. exact: adequacyP. Qed.
 
 (** ** Axiom audit *)

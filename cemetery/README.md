@@ -6,8 +6,8 @@ empty and `coqc` the files in `_CoqProject` order.
 
 Nothing here is on the live path.  The live development is the
 polarity line in `../error_freedom/` — twelve files, all `Pol*`,
-`PolBase` … `PolFN` — which proves `safe_typedP : typedP Γ P ->
-safeP P` unconditionally.  Note that this directory keeps its OWN
+`PolBase` … `PolFN` — which proves `error_free_typedP : typedP Γ P ->
+error_freeP P` unconditionally.  Note that this directory keeps its OWN
 copies of `synsem.v`, `Errors.v` and `LogRel.v`: those names no
 longer exist upstairs, where the surviving fragments were merged
 into `PolBase.v` (names, renamings, finite search) and `PolTypes.v`
@@ -63,7 +63,7 @@ becomes deterministic.
 ## `attic/PolAttic.v`
 
 Lemmas of the LIVE line that are true, proved, and unreachable from
-`safe_typedP` — chiefly the forward equivariance stack (the
+`error_free_typedP` — chiefly the forward equivariance stack (the
 fundamental theorem is in substitution form, so it consumes renaming
 *backwards*), the fully-injective τ-inversion (superseded by the
 coverage-guarded one), and the closed-world compatibility lemmas
