@@ -5,7 +5,7 @@ mathcomp 2.5.  To rebuild standalone: copy this directory somewhere
 empty and `coqc` the files in `_CoqProject` order.
 
 Nothing here is on the live path.  The live development is the
-polarity line in `../error_freedom/` — twelve files, all `Pol*`,
+polarity line in `../error_freedom/cut/` — twelve files, all `Pol*`,
 `PolBase` … `PolFN` — which proves `error_free_typedP : typedP Γ P ->
 error_freeP P` unconditionally.  Note that this directory keeps its OWN
 copies of `synsem.v`, `Errors.v` and `LogRel.v`: those names no
@@ -69,7 +69,7 @@ fundamental theorem is in substitution form, so it consumes renaming
 coverage-guarded one), and the closed-world compatibility lemmas
 (superseded by their σ-parametric versions, which additionally handle
 a merged subject).  Unlike the two strata above, this file is checked
-against the CURRENT live line: copy it into `../error_freedom/` and
+against the CURRENT live line: copy it into `../error_freedom/cut/` and
 
     coqc -R . Tait PolAttic.v
 

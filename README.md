@@ -6,7 +6,7 @@ proof that well-typed processes of a session π-calculus never go wrong
 incompatible actions (output against output, input against input, a
 close facing a delegation, a selection facing a delegation, …).
 
-The headline theorem, in `error_freedom/PolFN.v`:
+The headline theorem, in `error_freedom/cut/PolFN.v`:
 
 ```coq
 Theorem error_free_typedP m (Γ : pctx m) (P : procP m) :
@@ -23,7 +23,7 @@ Each directory is a self-contained development with its own
 `_CoqProject`:
 
 ```sh
-cd error_freedom
+cd error_freedom/cut          # or error_freedom/split
 coqc -R . Tait PolBase.v      # …then the rest, in _CoqProject order
 ```
 
@@ -35,8 +35,19 @@ coq_makefile -f _CoqProject -o Makefile && make
 
 ## Layout
 
-The live development is `error_freedom/`, twelve `Pol*.v` files in
-dependency order:
+`error_freedom/` holds two typing disciplines over the *same*
+calculus, relation and proof infrastructure:
+
+- **`cut/`** — parallel composition links exactly one session
+  (propositions-as-sessions style). Typed processes form a tree, so
+  deadlock is impossible by construction. Complete: 16 audits closed.
+- **`split/`** — parallel composition splits the context
+  (Honda–Vasconcelos–Kubo style). Two components may share any number
+  of sessions, so cyclic dependencies — and deadlocks — are typable.
+  Error freedom is exactly the property that survives the move. Work
+  in progress; see its `PolTyping.v`.
+
+Both contain the same twelve `Pol*.v` files in dependency order:
 
 | file | contents |
 |---|---|
