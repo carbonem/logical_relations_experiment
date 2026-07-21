@@ -1895,3 +1895,121 @@ Qed.
 
 Print Assumptions fcompat_closeB.
 Print Assumptions fcompat_delB.
+
+(** ** The fundamental theorem
+
+    A bare induction on the semantic typing judgment: one
+    compatibility lemma per rule.  The both-subject rules contribute
+    their premise-free lemmas, so the cases with no induction
+    hypothesis are exactly the cases where the relation asks nothing
+    of the continuation. *)
+
+Theorem fundamentalP m (Δs : sctxP m) (P : procP m) :
+  stypedP Δs P ->
+  forall n (σ : ren m n), vok σ Δs ->
+  SEMP (spush σ Δs) (psubst σ P).
+Proof.
+  elim=> {m Δs P}.
+  - move=> m Δ HD n σ Hv. exact: fcompat_end.
+  - move=> m Δ x r K HxS _ IH n σ Hv.
+    exact: fcompat_close Hv HxS IH.
+  - move=> m Δ x r K HxS _ IH n σ Hv.
+    exact: fcompat_wait Hv HxS IH.
+  - move=> m Δ x y r rd T S2 K HxS HyS _ IH n σ Hv.
+    exact: fcompat_del Hv HxS HyS IH.
+  - move=> m Δ x y r rd T T0 S2 K HxS HyS Hh _ IH n σ Hv.
+    exact: fcompat_delB Hv HxS HyS Hh IH.
+  - move=> m Δ x r rd T S2 K HxS _ IH n σ Hv.
+    exact: fcompat_ins Hv HxS IH.
+  - move=> m Δ x r b S1 S2 K HxS _ IH n σ Hv.
+    exact: fcompat_sel Hv HxS IH.
+  - move=> m Δ x r S1 S2 K1 K2 HxS _ IH1 _ IH2 n σ Hv.
+    apply: (fcompat_bra (Δ1' := Δ) (Δ2' := Δ)).
+    + exact: Hv.
+    + exact: HxS.
+    + exact: sevolve_refl.
+    + exact: sevolve_refl.
+    + exact: IH1.
+    + exact: IH2.
+  - move=> m Δ Δ1 Δ2 P Q Hm _ IH1 _ IH2 n σ Hv.
+    exact: fcompat_par Hv Hm IH1 IH2.
+  - move=> m Δ S B _ IH n σ Hv.
+    exact: fcompat_res IH Hv.
+  - move=> m Δ x r S0 K Hx Hh n σ Hv.
+    exact: fcompat_closeB Hv Hx Hh.
+  - move=> m Δ x r S0 K Hx Hh n σ Hv.
+    exact: fcompat_waitB Hv Hx Hh.
+  - move=> m Δ x r S0 T S2 d K Hx Hh n σ Hv.
+    exact: fcompat_delSubjB Hv Hx Hh.
+  - move=> m Δ x r rd S0 T S2 K Hx Hh n σ Hv.
+    exact: fcompat_insB Hv Hx Hh.
+  - move=> m Δ x r b S0 S1 S2 K Hx Hh n σ Hv.
+    exact: fcompat_selB Hv Hx Hh.
+  - move=> m Δ x r S0 S1 S2 K1 K2 Hx Hh n σ Hv.
+    exact: fcompat_braB Hv Hx Hh.
+Qed.
+
+Print Assumptions fundamentalP.
+
+(** ** The identity instance *)
+
+Lemma vok_id m (Δs : sctxP m) : vok id_ren Δs.
+Proof. move=> x1 x2 _ _ E. by left. Qed.
+
+Lemma spush_id m (Δs : sctxP m) w : spush id_ren Δs w = Δs w.
+Proof.
+  case E : (Δs w) => [e|].
+  - rewrite -E.
+    apply: (spush_solo (x := w)) => //; first by rewrite E.
+  - have Hfr : forall x : ch m, id_ren x = w -> Δs x = None.
+      move=> x Ex. move: Ex. rewrite /id_ren => ->. exact: E.
+    exact: (spush_none_fwd Hfr).
+Qed.
+
+(** ** End-to-end: typed processes are error-free
+
+    [balanced] is the standing assumption of the typing judgment: if a
+    context holds both ends of a session, they run dual protocols.  It
+    is vacuous for a closed process, whose context is empty. *)
+
+Theorem fundamental_typedP m (Γ : pctx m) (P : procP m) :
+  typedP Γ P -> balanced Γ -> SEMP (sctx_of Γ) P.
+Proof.
+  move=> Ht Hb.
+  have HS := fundamentalP (typed_styped Ht Hb) (@vok_id m (sctx_of Γ)).
+  rewrite psubst_id in HS.
+  move=> k. apply: EsemP_ext (HS k) => v. exact: spush_id.
+Qed.
+
+Theorem error_free_typedP m (Γ : pctx m) (P : procP m) :
+  typedP Γ P -> balanced Γ -> error_freeP P.
+Proof. move=> Ht Hb. exact: adequacyP (fundamental_typedP Ht Hb). Qed.
+
+Print Assumptions fundamental_typedP.
+Print Assumptions error_free_typedP.
+
+(** ** The point of the exercise
+
+    The cut discipline could not type this process: two sessions
+    cross one parallel composition.  It is well typed here, it is
+    genuinely stuck ([PolTyping.no_step_deadlock]), and it is
+    error-free.  Deadlock freedom is what the move to split contexts
+    gives up; error freedom is what it keeps. *)
+Example deadlock_error_free :
+  error_freeP ((ν) ((ν) ( ((zero, pos) !․ ((one, neg) ?․ ∅))
+                        ∥ ((one, pos) !․ ((zero, neg) ?․ ∅)) ))
+               : procP 0).
+Proof.
+  apply: error_free_typedP; [exact: typed_deadlock | exact: balanced_empty].
+Qed.
+
+(** The canonical cut is still error-free, of course. *)
+Example close_wait_error_free :
+  error_freeP ((ν) (((zero, pos) !․ ∅) ∥ ((zero, neg) ?․ ∅))
+               : procP 0).
+Proof.
+  apply: error_free_typedP;
+    [exact: typed_close_wait | exact: balanced_empty].
+Qed.
+
+Print Assumptions deadlock_error_free.

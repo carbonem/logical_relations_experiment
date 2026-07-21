@@ -13,6 +13,16 @@ Theorem error_free_typedP m (Γ : pctx m) (P : procP m) :
   typedP Γ P -> error_freeP P.
 ```
 
+and in `error_freedom/split/PolFN.v`, over the standard
+(context-splitting) session typing, where `balanced` says that a
+context holding both ends of a session gives them dual protocols —
+vacuous for a closed process:
+
+```coq
+Theorem error_free_typedP m (Γ : pctx m) (P : procP m) :
+  typedP Γ P -> balanced Γ -> error_freeP P.
+```
+
 No `Admitted`, and every result is audited: 16 `Print Assumptions`
 across the development, all reporting *Closed under the global
 context*.
@@ -44,8 +54,9 @@ calculus, relation and proof infrastructure:
 - **`split/`** — parallel composition splits the context
   (Honda–Vasconcelos–Kubo style). Two components may share any number
   of sessions, so cyclic dependencies — and deadlocks — are typable.
-  Error freedom is exactly the property that survives the move. Work
-  in progress; see its `PolTyping.v`.
+  Error freedom is exactly the property that survives the move.
+  Complete: 13 files, 20 audits closed. Its `deadlock_error_free`
+  proves a well-typed, genuinely stuck process error-free.
 
 Both contain the same twelve `Pol*.v` files in dependency order:
 
