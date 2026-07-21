@@ -1583,3 +1583,315 @@ Qed.
 
 Print Assumptions dmerge_spush.
 Print Assumptions fcompat_par.
+
+(** ** Both-subject prefixes
+
+    A prefix whose subject is a both-held name.  Such a name cannot
+    collide with any other owned name under a valid substitution --
+    [vok]'s only escape is a dual SEPARATE pair -- so it is its own
+    unique preimage and the image slot is again a both-slot.  The
+    relation then asks nothing of the continuation: both-slots carry
+    no value obligation, and a prefix does not τ.  Conformance is all
+    there is, which is why these lemmas take no induction
+    hypothesis. *)
+
+Lemma vok_both_solo m n (σ : ren m n) (Δs : sctxP m) x S0 :
+  vok σ Δs -> Δs x = Some (SBoth S0) ->
+  forall x', σ x' = σ x -> Δs x' <> None -> x' = x.
+Proof.
+  move=> Hv Hx x' Ex' Ho'.
+  case: (Hv x' x Ho' _ Ex') => //; first by rewrite Hx.
+  move=> [ρ [T [_ Ex]]]. by rewrite Hx in Ex.
+Qed.
+
+Lemma spush_both_solo m n (σ : ren m n) (Δs : sctxP m) x S0 :
+  vok σ Δs -> Δs x = Some (SBoth S0) ->
+  spush σ Δs (σ x) = Some (SBoth S0).
+Proof.
+  move=> Hv Hx.
+  have Ho : Δs x <> None by rewrite Hx.
+  by rewrite (spush_solo erefl Ho (vok_both_solo Hv Hx)) Hx.
+Qed.
+
+Lemma fcompat_closeB m n (σ : ren m n) (Δs : sctxP m) (x : ch m)
+    (r : pol) S0 (K : procP m) :
+  vok σ Δs -> Δs x = Some (SBoth S0) -> pole r S0 = SClose ->
+  SEMP (spush σ Δs) (psubst σ ((x, r) !․ K)).
+Proof.
+  move=> Hv Hx Hh.
+  have Hpush := spush_both_solo Hv Hx.
+  move=> [|k] //. split.
+  - split=> //.
+    move=> a c Hof. case: (offers_close Hof) => -> -> /=.
+    exists SClose. by rewrite /sat /= Hpush /= Hh.
+  - move=> w rw S HwS.
+    case: S HwS => [| |T' S2'|T' S2'|S1' S2''|S1' S2''] HwS /=.
+    + move=> R HT. case: (pinv_c_closeF HT) => Ec' ->.
+      move: Ec' => -[E1 E2]. subst w rw.
+      by rewrite Hpush in HwS.
+    + move=> R HT. by case: (pinv_w_close HT).
+    + split.
+      * move=> y' rd' R HT. by case: (pinv_f_close2 HT).
+      * move=> r' R HT. by case: (pinv_b_close HT).
+    + split.
+      * move=> y' rd' R HT. by case: (pinv_r_close2 HT).
+      * move=> rd' R HT. by case: (pinv_r_close2 HT).
+    + move=> b R HT. by case: (pinv_sel_close HT).
+    + move=> b R HT. by case: (pinv_br_close HT).
+  - move=> R Hst. by case: (pinv_t_close Hst).
+Qed.
+
+Lemma fcompat_waitB m n (σ : ren m n) (Δs : sctxP m) (x : ch m)
+    (r : pol) S0 (K : procP m) :
+  vok σ Δs -> Δs x = Some (SBoth S0) -> pole r S0 = SWait ->
+  SEMP (spush σ Δs) (psubst σ ((x, r) ?․ K)).
+Proof.
+  move=> Hv Hx Hh.
+  have Hpush := spush_both_solo Hv Hx.
+  move=> [|k] //. split.
+  - split=> //.
+    move=> a c Hof. case: (offers_wait Hof) => -> -> /=.
+    exists SWait. by rewrite /sat /= Hpush /= Hh.
+  - move=> w rw S HwS.
+    case: S HwS => [| |T' S2'|T' S2'|S1' S2''|S1' S2''] HwS /=.
+    + move=> R HT. by case: (pinv_c_wait HT).
+    + move=> R HT. case: (pinv_w_waitF HT) => Ec' ->.
+      move: Ec' => -[E1 E2]. subst w rw.
+      by rewrite Hpush in HwS.
+    + split.
+      * move=> y' rd' R HT. by case: (pinv_f_wait2 HT).
+      * move=> r' R HT. by case: (pinv_b_wait HT).
+    + split.
+      * move=> y' rd' R HT. by case: (pinv_r_wait2 HT).
+      * move=> rd' R HT. by case: (pinv_r_wait2 HT).
+    + move=> b R HT. by case: (pinv_sel_wait HT).
+    + move=> b R HT. by case: (pinv_br_wait HT).
+  - move=> R Hst. by case: (pinv_t_wait Hst).
+Qed.
+
+Lemma fcompat_delSubjB m n (σ : ren m n) (Δs : sctxP m) (x : ch m)
+    (r : pol) S0 T S2 (d : pch m) (K : procP m) :
+  vok σ Δs -> Δs x = Some (SBoth S0) -> pole r S0 = SSend T S2 ->
+  SEMP (spush σ Δs) (psubst σ ((x, r) ! d ․ K)).
+Proof.
+  move=> Hv Hx Hh.
+  have Hpush := spush_both_solo Hv Hx.
+  move=> [|k] //. split.
+  - split=> //.
+    move=> a c Hof. case: (offers_del Hof) => -> -> /=.
+    exists (SSend T S2). by rewrite /sat /= Hpush /= Hh.
+  - move=> w rw S HwS.
+    case: S HwS => [| |T' S2'|T' S2'|S1' S2''|S1' S2''] HwS /=.
+    + move=> R HT. by case: (pinv_c_del HT).
+    + move=> R HT. by case: (pinv_w_del HT).
+    + split.
+      * move=> y' rd' R HT.
+        case: (pinv_f_delF HT) => Ec' _ _.
+        move: Ec' => -[E1 _]. subst w.
+        by rewrite Hpush in HwS.
+      * move=> r' R HT. by case: (pinv_b_del HT).
+    + split.
+      * move=> y' rd' R HT. by case: (pinv_r_del HT).
+      * move=> rd' R HT. by case: (pinv_r_del HT).
+    + move=> b R HT. by case: (pinv_sel_del HT).
+    + move=> b R HT. by case: (pinv_br_del HT).
+  - move=> R Hst. by case: (pinv_t_del Hst).
+Qed.
+
+Lemma fcompat_insB m n (σ : ren m n) (Δs : sctxP m) (x : ch m)
+    (r rd : pol) S0 T S2 (K : procP m.+1) :
+  vok σ Δs -> Δs x = Some (SBoth S0) -> pole r S0 = SRecv T S2 ->
+  SEMP (spush σ Δs) (psubst σ ((x, r) ?( rd )․ K)).
+Proof.
+  move=> Hv Hx Hh.
+  have Hpush := spush_both_solo Hv Hx.
+  move=> [|k] //. split.
+  - split=> //.
+    move=> a c Hof. case: (offers_ins Hof) => -> -> /=.
+    exists (SRecv T S2). by rewrite /sat /= Hpush /= Hh.
+  - move=> w rw S HwS.
+    case: S HwS => [| |T' S2'|T' S2'|S1' S2''|S1' S2''] HwS /=.
+    + move=> R HT. by case: (pinv_c_ins HT).
+    + move=> R HT. by case: (pinv_w_ins HT).
+    + split.
+      * move=> y' rd' R HT. by case: (pinv_f_ins HT).
+      * move=> r' R HT. by case: (pinv_b_ins HT).
+    + split.
+      * move=> y' rd' R HT.
+        case: (pinv_r_insF HT) => Ec' _ _.
+        move: Ec' => -[E1 _]. subst w.
+        by rewrite Hpush in HwS.
+      * move=> rd' R HT.
+        rewrite /= in HT.
+        case: (pinv_r_insF HT) => Ec' _ _.
+        move: Ec' => -[E1 _]. subst w.
+        by rewrite Hpush in HwS.
+    + move=> b R HT. by case: (pinv_sel_ins HT).
+    + move=> b R HT. by case: (pinv_br_ins HT).
+  - move=> R Hst. by case: (pinv_t_ins Hst).
+Qed.
+
+Lemma fcompat_selB m n (σ : ren m n) (Δs : sctxP m) (x : ch m)
+    (r : pol) (b : bool) S0 S1 S2 (K : procP m) :
+  vok σ Δs -> Δs x = Some (SBoth S0) -> pole r S0 = SSel S1 S2 ->
+  SEMP (spush σ Δs) (psubst σ ((x, r) ◁ b ․ K)).
+Proof.
+  move=> Hv Hx Hh.
+  have Hpush := spush_both_solo Hv Hx.
+  move=> [|k] //. split.
+  - split=> //.
+    move=> a c Hof. case: (offers_sel Hof) => -> -> /=.
+    exists (SSel S1 S2). by rewrite /sat /= Hpush /= Hh.
+  - move=> w rw S HwS.
+    case: S HwS => [| |T' S2'|T' S2'|S1' S2''|S1' S2''] HwS /=.
+    + move=> R HT. by case: (pinv_c_sel HT).
+    + move=> R HT. by case: (pinv_w_sel HT).
+    + split.
+      * move=> y' rd' R HT. by case: (pinv_f_sel HT).
+      * move=> r' R HT. by case: (pinv_b_sel HT).
+    + split.
+      * move=> y' rd' R HT. by case: (pinv_r_sel HT).
+      * move=> rd' R HT. by case: (pinv_r_sel HT).
+    + move=> b' R HT.
+      case: (pinv_sel_selF HT) => Ec' _ _.
+      move: Ec' => -[E1 _]. subst w.
+      by rewrite Hpush in HwS.
+    + move=> b' R HT. by case: (pinv_br_sel HT).
+  - move=> R Hst. by case: (pinv_t_sel Hst).
+Qed.
+
+Lemma fcompat_braB m n (σ : ren m n) (Δs : sctxP m) (x : ch m)
+    (r : pol) S0 S1 S2 (K1 K2 : procP m) :
+  vok σ Δs -> Δs x = Some (SBoth S0) -> pole r S0 = SBra S1 S2 ->
+  SEMP (spush σ Δs) (psubst σ ((x, r) ▷ ( K1 | K2 ))).
+Proof.
+  move=> Hv Hx Hh.
+  have Hpush := spush_both_solo Hv Hx.
+  move=> [|k] //. split.
+  - split=> //.
+    move=> a c Hof. case: (offers_bra Hof) => -> -> /=.
+    exists (SBra S1 S2). by rewrite /sat /= Hpush /= Hh.
+  - move=> w rw S HwS.
+    case: S HwS => [| |T' S2'|T' S2'|S1' S2''|S1' S2''] HwS /=.
+    + move=> R HT. by case: (pinv_c_bra HT).
+    + move=> R HT. by case: (pinv_w_bra HT).
+    + split.
+      * move=> y' rd' R HT. by case: (pinv_f_bra HT).
+      * move=> r' R HT. by case: (pinv_b_bra HT).
+    + split.
+      * move=> y' rd' R HT. by case: (pinv_r_bra HT).
+      * move=> rd' R HT. by case: (pinv_r_bra HT).
+    + move=> b' R HT. by case: (pinv_sel_bra HT).
+    + move=> b' R HT.
+      case: (pinv_br_braF HT) => Ec' _.
+      move: Ec' => -[E1 _]. subst w.
+      by rewrite Hpush in HwS.
+  - move=> R Hst. by case: (pinv_t_bra Hst).
+Qed.
+
+(** ** Delegating one end of an internal session
+
+    The subject is separate, but the PAYLOAD is a both-held name: the
+    process owns both ends of the session it is giving away one end
+    of.  The image slot of the payload is then a both-slot, [esat]
+    reads the sent end's protocol off it by [pole], and [econsume]
+    leaves exactly the co-residual the semantic typing rule records.
+    This delegation is not expressible in the cut discipline. *)
+Lemma fcompat_delB m n (σ : ren m n) (Δs : sctxP m) (x yp : ch m)
+    (r rd : pol) T T0 S2 (K : procP m) :
+  vok σ Δs ->
+  Δs x = Some (SSep r (SSend T S2)) ->
+  Δs yp = Some (SBoth T0) ->
+  pole rd T0 = T ->
+  (forall n' (σ' : ren m n'),
+     vok σ' (scupd yp (Some (SSep (flipp rd) (pole (flipp rd) T0)))
+               (scupd x (Some (SSep r S2)) Δs)) ->
+     SEMP (spush σ' (scupd yp (Some (SSep (flipp rd) (pole (flipp rd) T0)))
+               (scupd x (Some (SSep r S2)) Δs))) (psubst σ' K)) ->
+  SEMP (spush σ Δs) (psubst σ ((x, r) ! (yp, rd) ․ K)).
+Proof.
+  move=> Hv HxS HyS Hh IH.
+  have Ho : Δs x <> None by rewrite HxS.
+  have Hoy : Δs yp <> None by rewrite HyS.
+  have Hxy : x <> yp.
+    move=> E. by rewrite E HyS in HxS.
+  (* the payload is a both-name, so nothing collides with it *)
+  have Hsxy : σ x <> σ yp.
+    move=> E. by apply: Hxy; apply: (vok_both_solo Hv HyS).
+  case: (vok_split Hv Ho)
+    => [Huniq|[xc [ρ [Tc [Hne Ec Dx Dxc Huniq2]]]]]; last first.
+  - (* merged subject: conformance only *)
+    rewrite Dx in HxS. case: HxS => Eρ ET. subst ρ.
+    have Hpush : spush σ Δs (σ x) = Some (SBoth (pole r (SSend T S2))).
+      rewrite -ET.
+      exact (spush_pair (x0 := x) (x1 := xc) Hv erefl Ec Hne Dx Dxc).
+    move=> [|k] //. split.
+    + split=> //.
+      move=> a c Hof. case: (offers_del Hof) => -> -> /=.
+      exists (SSend T S2). by rewrite /sat /= Hpush /= pole_invol.
+    + move=> w rw S HwS.
+      case: S HwS => [| |T' S2'|T' S2'|S1' S2''|S1' S2''] HwS /=.
+      * move=> R HT. by case: (pinv_c_del HT).
+      * move=> R HT. by case: (pinv_w_del HT).
+      * split.
+        -- move=> y' rd' R HT.
+           case: (pinv_f_delF HT) => Ec' _ _.
+           move: Ec' => -[E1 _]. subst w.
+           by rewrite Hpush in HwS.
+        -- move=> r' R HT. by case: (pinv_b_del HT).
+      * split.
+        -- move=> y' rd' R HT. by case: (pinv_r_del HT).
+        -- move=> rd' R HT. by case: (pinv_r_del HT).
+      * move=> b R HT. by case: (pinv_sel_del HT).
+      * move=> b R HT. by case: (pinv_br_del HT).
+    + move=> R Hst. by case: (pinv_t_del Hst).
+  - (* solo subject *)
+    have Hpush : spush σ Δs (σ x) = Some (SSep r (SSend T S2)).
+      by rewrite (spush_solo erefl Ho Huniq) HxS.
+    (* the payload stays solo after the subject is advanced *)
+    have Huy' : forall x', σ x' = σ yp ->
+        scupd x (Some (SSep r S2)) Δs x' <> None -> x' = yp.
+      move=> x' Ex'. rewrite /scupd.
+      case Enx : (x' == x).
+      + move/eqP: Enx Ex' => -> Ex' _. by case: (Hsxy Ex').
+      + move=> Hox'. exact: (vok_both_solo Hv HyS).
+    have Hvk : vok σ
+        (scupd yp (Some (SSep (flipp rd) (pole (flipp rd) T0)))
+           (scupd x (Some (SSep r S2)) Δs)).
+      apply: vok_upd_solo; last exact: Huy'.
+      exact: vok_upd_solo Hv Huniq.
+    move=> [|k] //. split.
+    + split=> //.
+      move=> a c Hof. case: (offers_del Hof) => -> -> /=.
+      exists (SSend T S2). by rewrite /sat /= Hpush /= pol_eqb_refl.
+    + move=> w rw S HwS.
+      case: S HwS => [| |T' S2'|T' S2'|S1' S2''|S1' S2''] HwS /=.
+      * move=> R HT. by case: (pinv_c_del HT).
+      * move=> R HT. by case: (pinv_w_del HT).
+      * split.
+        -- (* the delegation itself *)
+           move=> y' rd' R HT.
+           case: (pinv_f_delF HT) => Ec' Ed' ->.
+           move: Ec' Ed' => -[E1 E2] -[E3 E4]. subst w rw y' rd'.
+           rewrite Hpush in HwS. case: HwS => ETT ES2. subst T' S2'.
+           exists (SBoth T0). split.
+           ++ exact: spush_both_solo Hv HyS.
+           ++ by rewrite /= Hh.
+           ++ apply: EsemP_ext (IH _ _ Hvk k) => v.
+              rewrite (spush_upd_some_solo
+                (SSep (flipp rd) (pole (flipp rd) T0)) _ Huy' v);
+                last by rewrite /scupd; case: (yp == x); rewrite ?HyS.
+              by rewrite (scupd_under _ _
+                   (fun q => spush_upd_some_solo (SSep r S2)
+                               Ho Huniq q)).
+        -- move=> r' R HT. by case: (pinv_b_del HT).
+      * split.
+        -- move=> y' rd' R HT. by case: (pinv_r_del HT).
+        -- move=> rd' R HT. by case: (pinv_r_del HT).
+      * move=> b R HT. by case: (pinv_sel_del HT).
+      * move=> b R HT. by case: (pinv_br_del HT).
+    + move=> R Hst. by case: (pinv_t_del Hst).
+Qed.
+
+Print Assumptions fcompat_closeB.
+Print Assumptions fcompat_delB.
