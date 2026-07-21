@@ -10,4 +10,5 @@ PolEquiv.v
 PolCompat.v
 PolSem.v
 PolComb.v
+PolBridge.v
 PolFN.v
