@@ -4,7 +4,7 @@
     [offers_close] and friends read a hypothetical [offersP] back off
     the syntax, killing every obligation of the value interpretation
     except the one belonging to the prefix's own head.  Every
-    compatibility proof in [PolFN.v] opens with one of them.
+    compatibility proof in [FN.v] opens with one of them.
 
     Also here: [compat_endP], the ∅ rule, which is the one
     compatibility lemma with nothing σ-dependent to say (a context of
@@ -17,12 +17,12 @@
     versions ([fcompat_close], [fcompat_wait], [fcompat_del]) must
     also handle a MERGED subject -- an endpoint whose σ-image carries
     both ends -- which the closed-world versions cannot express; they
-    are superseded, and sit in [cemetery/attic/PolAttic.v]. *)
+    are superseded, and sit in [cemetery/attic/Attic.v]. *)
 
 From mathcomp Require Import all_ssreflect.
 From Stdlib Require Import Eqdep_dec PeanoNat.
-From Tait Require Import PolBase PolTypes PolProc PolLTS
-  PolErr PolTyping PolLogRel.
+From Tait Require Import Base Types Proc LTS
+  Err Typing LogRel.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

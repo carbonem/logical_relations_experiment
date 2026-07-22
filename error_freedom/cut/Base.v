@@ -6,14 +6,14 @@
     is a plain function [ch n -> ch m].  Because [ch n] is finite and
     has decidable equality, a predicate over it can be searched
     ([find_ch]) -- which is what makes the pushforward of a context
-    along a renaming computable, in [PolSem.v] and [PolFN.v].
+    along a renaming computable, in [Sem.v] and [FN.v].
 
     HISTORY.  This material was split across [synsem.v] (whose process
     syntax, structural congruence and reduction belonged to the
     ≅-based presentation) and the equivariance file of the
     double-binder presentation.  Both presentations are in
     [cemetery/], which keeps the originals; the process syntax of the
-    live line is [PolProc.v].  In particular the old process
+    live line is [Proc.v].  In particular the old process
     notations ([∅], [∥], [(ν)], ...) are gone, so [pol_scope] owns
     them now without shadowing. *)
 

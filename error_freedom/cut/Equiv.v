@@ -15,7 +15,7 @@
     that, but the substitution lemma cannot supply it (a collapse
     [scons y id] merges [zero] with [shift y] by construction).  The
     usable form is the coverage-guarded [ltstP_ren_inv_cov] in
-    [PolSem.v]: injectivity only on the names [P] actually offers at,
+    [Sem.v]: injectivity only on the names [P] actually offers at,
     which conformance provides.  A non-injective renaming can merge
     two names and thereby CREATE synchronizations; that phenomenon is
     handled semantically, in the fuse clause of the receive
@@ -25,11 +25,11 @@
     fundamental theorem consumes renaming backwards only.  The single
     exception kept live is [ltsrP_ren], which [compat_resP] uses to
     conjugate a receive through a binder by [swap_ch zero one].  The
-    rest is in [cemetery/attic/PolAttic.v]. *)
+    rest is in [cemetery/attic/Attic.v]. *)
 
 From mathcomp Require Import all_ssreflect.
 From Stdlib Require Import Eqdep_dec PeanoNat.
-From Tait Require Import PolBase PolTypes PolProc PolLTS PolErr.
+From Tait Require Import Base Types Proc LTS Err.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

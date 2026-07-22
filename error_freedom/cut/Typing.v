@@ -19,12 +19,12 @@
 
     Delegation sends an OPEN endpoint ([Sep] slot); ✓ is never
     delegated and never split.  The bound-delegation sender that holds
-    both ends of its own restriction ([PolLTS.run_bound_deleg]) is
+    both ends of its own restriction ([LTS.run_bound_deleg]) is
     deliberately outside the typed fragment, as in the source
     development. *)
 
 From mathcomp Require Import all_ssreflect.
-From Tait Require Import PolBase PolTypes PolProc PolLTS.
+From Tait Require Import Base Types Proc LTS.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

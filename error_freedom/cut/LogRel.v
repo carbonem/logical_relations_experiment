@@ -2,7 +2,7 @@
 
     Step-indexed as before ([k] = internal-step budget), organized by
     type structure as before (one value clause per [sty] constructor),
-    but over the slot contexts of [PolTyping.v].  The slot design pays
+    but over the slot contexts of [Typing.v].  The slot design pays
     off twice:
 
     1. THE CUT CLAUSE IS DETERMINISTIC.  A restriction's body is
@@ -45,7 +45,7 @@
 
 From mathcomp Require Import all_ssreflect.
 From Stdlib Require Import Eqdep_dec PeanoNat.
-From Tait Require Import PolBase PolTypes PolProc PolLTS PolErr PolTyping.
+From Tait Require Import Base Types Proc LTS Err Typing.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

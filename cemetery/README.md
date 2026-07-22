@@ -5,12 +5,12 @@ mathcomp 2.5.  To rebuild standalone: copy this directory somewhere
 empty and `coqc` the files in `_CoqProject` order.
 
 Nothing here is on the live path.  The live development is the
-polarity line in `../error_freedom/cut/` — twelve files, all `Pol*`,
-`PolBase` … `PolFN` — which proves `error_free_typedP : typedP Γ P ->
+polarity line in `../error_freedom/cut/` — twelve files,
+`Base` … `FN` — which proves `error_free_typedP : typedP Γ P ->
 error_freeP P` unconditionally.  Note that this directory keeps its OWN
 copies of `synsem.v`, `Errors.v` and `LogRel.v`: those names no
 longer exist upstairs, where the surviving fragments were merged
-into `PolBase.v` (names, renamings, finite search) and `PolTypes.v`
+into `Base.v` (names, renamings, finite search) and `Types.v`
 (actions, compatibility, session types, duality).  These
 files are kept because they *measure* the two design decisions the
 live line rests on: each stratum is a wall we hit, and the cost of
@@ -48,7 +48,7 @@ syntactic connection, communication happened at the binder, and the
 - `LogRelTau.v`   the logical relation over that calculus
 - `TauInv.v`      inversion suite
 - `TauEquiv.v`    equivariance stack (its `find_ch` survived: it is now
-                  `PolBase.v` on the live line)
+                  `Base.v` on the live line)
 - `TauSem.v`      substitution/weakening for the relation
 
 The wall, and it is the one worth narrating: under sync-descent the
@@ -60,7 +60,7 @@ Polarized endpoints dissolve it: with a total syntactic co-endpoint
 map, communication happens at `∥`, `ν` is inert, and the cut clause
 becomes deterministic.
 
-## `attic/PolAttic.v`
+## `attic/Attic.v`
 
 Lemmas of the LIVE line that are true, proved, and unreachable from
 `error_free_typedP` — chiefly the forward equivariance stack (the
@@ -71,7 +71,7 @@ coverage-guarded one), and the closed-world compatibility lemmas
 a merged subject).  Unlike the two strata above, this file is checked
 against the CURRENT live line: copy it into `../error_freedom/cut/` and
 
-    coqc -R . Tait PolAttic.v
+    coqc -R . Tait Attic.v
 
 It is deliberately absent from the live `_CoqProject`; nothing on the
 live path may depend on it.

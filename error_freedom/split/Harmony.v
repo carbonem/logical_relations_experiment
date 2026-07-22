@@ -6,7 +6,7 @@
     binder exchange), and reduction [red] with one axiom per
     communication kind, closed under ∥, ν and [cong].
 
-    The harmony lemma relates [red] to the LTS of [PolLTS.v]:
+    The harmony lemma relates [red] to the LTS of [LTS.v]:
 
       lts_impl_red : ltstP P Q  ->  red P Q
       red_impl_lts : red P Q    ->  exists Q', ltstP P Q' /\ cong Q Q'
@@ -39,11 +39,11 @@
       bisimulation for all seven transition families
       ([cong_resp_lts*]).  Renamings enter through the forward
       preservation lemmas [lts*P_ren] (restored from the attic) and
-      the backward inversions of [PolEquiv.v]. *)
+      the backward inversions of [Equiv.v]. *)
 
 From mathcomp Require Import all_ssreflect.
 From Stdlib Require Import Eqdep_dec PeanoNat.
-From Tait Require Import PolBase PolTypes PolProc PolLTS PolErr PolEquiv.
+From Tait Require Import Base Types Proc LTS Err Equiv.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -331,9 +331,9 @@ Qed.
 
 (** ** Forward renaming preservation of the LTS
 
-    Restored from [cemetery/attic/PolAttic.v] (the fundamental
+    Restored from [cemetery/attic/Attic.v] (the fundamental
     theorem consumes renaming backwards, so these forward lemmas were
-    retired there).  [ltsrP_ren] already lives in [PolEquiv.v] and is
+    retired there).  [ltsrP_ren] already lives in [Equiv.v] and is
     reused as-is.  Helpers [pren_flip] and [pren_up_zero] come along. *)
 
 Lemma pren_flip m n (s : ren m n) (c : pch m) :
@@ -823,7 +823,7 @@ Proof. apply: lts_impl_red. exact: PT_CW (PC_Pfx (x, pos) ∅) (PW_Pfx (x, neg) 
     is an induction on the one-layer congruence (19 cases): the
     parallel-monoid axioms and scope-extrusion axioms rearrange the
     transition through the residual-carrying inversions
-    [lts*P_parE]/[lts*P_resE] below, the [pinv_*] grid of [PolLTS.v]
+    [lts*P_parE]/[lts*P_resE] below, the [pinv_*] grid of [LTS.v]
     refutes the mismatched prefixes and fires the matching one, and the
     forward/backward renamings ([lts*P_ren], [lts*P_ren_inv]) close the
     [CG_Extr]/[CG_Extr']/[CG_NuSwap] frames -- the [CG_Extr'] frame
@@ -1711,14 +1711,14 @@ Qed.
 
 (** ** Backward τ-inversion under full injectivity
 
-    Resurrected from [cemetery/attic/PolAttic.v].  A τ-step of
+    Resurrected from [cemetery/attic/Attic.v].  A τ-step of
     [psubst s P] for an INJECTIVE [s] descends to a τ-step of [P];
     the two co-subjects share a preimage because full injectivity
     lets [pren_inj] cancel [pren s].  Applied below at [s := shift]
     and [s := up_ch shift] to close the [CG_Extr']/bound-send frames.
     [pren_inj] is the only private helper the proof needs that is not
     already in scope; [psubst_inv_par]/[psubst_inv_res] and the
-    [lts*P_ren_inv] suite live in [PolEquiv.v]. *)
+    [lts*P_ren_inv] suite live in [Equiv.v]. *)
 
 Lemma pren_inj m n (s : ren m n) :
   (forall z1 z2, s z1 = s z2 -> z1 = z2) ->

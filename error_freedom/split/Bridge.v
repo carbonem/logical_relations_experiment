@@ -3,7 +3,7 @@
     Two things live here.
 
     [stypedP] is the semantic typing judgment: the same shape as
-    [typedP], but over the SEMANTIC contexts of [PolLogRel.v], which
+    [typedP], but over the SEMANTIC contexts of [LogRel.v], which
     record for each NAME whether the process holds one endpoint
     ([SSep ρ S]) or both ([SBoth S], the [pos] end at [S]).  Its
     parallel rule is exactly [dmerge] -- the merge relation the cut
@@ -34,8 +34,8 @@
 
 From mathcomp Require Import all_ssreflect.
 From Stdlib Require Import Eqdep_dec PeanoNat.
-From Tait Require Import PolBase PolTypes PolProc PolLTS PolErr PolTyping
-  PolLogRel PolEquiv PolCompat PolSem PolComb.
+From Tait Require Import Base Types Proc LTS Err Typing
+  LogRel Equiv Compat Sem Comb.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

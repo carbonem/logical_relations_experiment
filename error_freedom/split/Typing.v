@@ -6,7 +6,7 @@
     ends of a fresh session.
 
     This is the point of departure from the cut-based system in
-    [../cut/PolTyping.v], where [TP_Par] linked exactly one channel
+    [../cut/Typing.v], where [TP_Par] linked exactly one channel
     and the frames were disjoint.  There, a typed process is a TREE of
     sessions: two components share at most one session, so a cyclic
     dependency cannot be written and deadlock is impossible by
@@ -39,7 +39,7 @@
     prefix can never fire. *)
 
 From mathcomp Require Import all_ssreflect.
-From Tait Require Import PolBase PolTypes PolProc PolLTS.
+From Tait Require Import Base Types Proc LTS.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

@@ -4,7 +4,7 @@
     the [pos] and [neg] endpoints of a name are both offered, with
     incompatible actions (close against close, send against send,
     close against delegation, ...).  [act] and [compat] are unchanged
-    from [PolTypes.v].
+    from [Types.v].
 
     Because co-endpoints are syntactic ([pflip]) and communication
     happens at ∥, a mismatch is a property of ANY process at ANY
@@ -22,7 +22,7 @@
 
 From mathcomp Require Import all_ssreflect.
 From Stdlib Require Import Eqdep_dec PeanoNat.
-From Tait Require Import PolBase PolTypes PolProc PolLTS.
+From Tait Require Import Base Types Proc LTS.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

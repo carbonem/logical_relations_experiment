@@ -44,7 +44,7 @@
 
 From mathcomp Require Import all_ssreflect.
 From Stdlib Require Import Eqdep_dec PeanoNat.
-From Tait Require Import PolBase PolProc.
+From Tait Require Import Base Proc.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

@@ -10,22 +10,22 @@
     incompatible capabilities: both outputs, both inputs, or a close
     facing a delegation (the "wrong sort of message" errors).  This
     file fixes the vocabulary; the error predicate itself is
-    [PolErr.errP], over the transition families of [PolLTS.v].
+    [Err.errP], over the transition families of [LTS.v].
 
     Design note: [compat] is a boolean, so evidence of a mismatch is
     positive and decidable -- a pair of actions plus [erefl].  No
     negated proposition occurs inside the error predicate.  Error freedom
-    ([PolErr.error_freeP]) is the one genuinely negative notion in the
+    ([Err.error_freeP]) is the one genuinely negative notion in the
     development; the logical relation built on top has positive,
     conditional clauses and meets errors only as the final
     contradiction in adequacy.
 
-    HISTORY.  Split across [PolTypes.v] and [LogRel.v], whose other
+    HISTORY.  Split across [Types.v] and [LogRel.v], whose other
     halves -- error and safety over the ≅-calculus, and the
     ≅-based interpretations -- went to [cemetery/]. *)
 
 From mathcomp Require Import all_ssreflect.
-From Tait Require Import PolBase.
+From Tait Require Import Base.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -82,7 +82,7 @@ Proof.
     rewrite ?IH ?IH1 ?IH2.
 Qed.
 
-(** Bridge to [PolTypes.act]: the action a protocol's head prescribes. *)
+(** Bridge to [Types.act]: the action a protocol's head prescribes. *)
 Definition head_act (S : sty) : act :=
   match S with
   | SClose     => AClose

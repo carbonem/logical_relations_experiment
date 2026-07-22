@@ -6,14 +6,14 @@ proof that well-typed processes of a session π-calculus never go wrong
 incompatible actions (output against output, input against input, a
 close facing a delegation, a selection facing a delegation, …).
 
-The headline theorem, in `error_freedom/cut/PolFN.v`:
+The headline theorem, in `error_freedom/cut/FN.v`:
 
 ```coq
 Theorem error_free_typedP m (Γ : pctx m) (P : procP m) :
   typedP Γ P -> error_freeP P.
 ```
 
-and in `error_freedom/split/PolFN.v`, over the standard
+and in `error_freedom/split/FN.v`, over the standard
 (context-splitting) session typing, where `balanced` says that a
 context holding both ends of a session gives them dual protocols —
 vacuous for a closed process:
@@ -34,7 +34,7 @@ Each directory is a self-contained development with its own
 
 ```sh
 cd error_freedom/cut          # or error_freedom/split
-coqc -R . Tait PolBase.v      # …then the rest, in _CoqProject order
+coqc -R . Tait Base.v      # …then the rest, in _CoqProject order
 ```
 
 or generate a makefile:
@@ -58,22 +58,22 @@ calculus, relation and proof infrastructure:
   Complete: 13 files, 20 audits closed. Its `deadlock_error_free`
   proves a well-typed, genuinely stuck process error-free.
 
-Both contain the same twelve `Pol*.v` files in dependency order:
+Both contain the same twelve files, in dependency order:
 
 | file | contents |
 |---|---|
-| `PolBase.v`   | names, renamings, decidable finite search |
-| `PolTypes.v`  | actions, compatibility, session types, duality |
-| `PolProc.v`   | polarized process syntax, substitution |
-| `PolLTS.v`    | seven visible-action families + τ; inversion suite |
-| `PolErr.v`    | offers, the error predicate, error freedom |
-| `PolTyping.v` | session typing |
-| `PolLogRel.v` | the step-indexed logical relation; adequacy |
-| `PolEquiv.v`  | backward equivariance of the LTS |
-| `PolCompat.v` | offer determination; the ∅ rule |
-| `PolSem.v`    | slot order, substitution lemma for the relation |
-| `PolComb.v`   | the ν rule and the parallel cut |
-| `PolFN.v`     | semantic typing, the fundamental theorem, error freedom |
+| `Base.v`   | names, renamings, decidable finite search |
+| `Types.v`  | actions, compatibility, session types, duality |
+| `Proc.v`   | polarized process syntax, substitution |
+| `LTS.v`    | seven visible-action families + τ; inversion suite |
+| `Err.v`    | offers, the error predicate, error freedom |
+| `Typing.v` | session typing |
+| `LogRel.v` | the step-indexed logical relation; adequacy |
+| `Equiv.v`  | backward equivariance of the LTS |
+| `Compat.v` | offer determination; the ∅ rule |
+| `Sem.v`    | slot order, substitution lemma for the relation |
+| `Comb.v`   | the ν rule and the parallel cut |
+| `FN.v`     | semantic typing, the fundamental theorem, error freedom |
 
 Two things the calculus does deliberately:
 

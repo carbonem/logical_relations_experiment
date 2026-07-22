@@ -4,12 +4,12 @@
     together with a polarity, [pch n := ch n * pol].  The co-endpoint
     of [(x, ρ)] is [(x, flip ρ)] -- a total syntactic function, also
     on free channels.  This is what the double-binder representation
-    ([PolBase.v]'s [ResP : proc n.+2 -> proc n]) cannot offer: there,
+    ([Base.v]'s [ResP : proc n.+2 -> proc n]) cannot offer: there,
     the pairing of the two endpoints exists only at their binder, so
     communication must be located at the ν, and every semantic
     argument about a synchronization has to descend the term to find
     it.  With polarities, communication is a rule of parallel
-    composition (see [PolLTS.v]) and the restriction stays inert.
+    composition (see [LTS.v]) and the restriction stays inert.
 
     The receive prefix carries the polarity it expects,
     [PIns c ρ K] = "receive on [c] an endpoint of polarity [ρ]".
@@ -19,13 +19,12 @@
     [(zero, neg)] would silently grant access to the co-endpoint --
     the substitution disaster for subject reduction.
 
-    Scope discipline is well-scoped de Bruijn as in [PolBase.v], but
+    Scope discipline is well-scoped de Bruijn as in [Base.v], but
     the restriction binds ONE name (both its polarities):
     [PRes : procP n.+1 -> procP n]. *)
 
 From mathcomp Require Import all_ssreflect.
-From HB Require Import structures.
-From Tait Require Import PolBase.
+From Tait Require Import Base.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -40,13 +39,6 @@ Proof. by case: r. Qed.
 
 Definition pol_eqb (a b : pol) : bool :=
   match a, b with pos, pos | neg, neg => true | _, _ => false end.
-
-Lemma pol_eqP : Equality.axiom pol_eqb.
-Proof. by case=> [] []; constructor. Qed.
-
-(** Polarities form an eqType, hence so do endpoints [pch n = ch n * pol]:
-    typing contexts are indexed by endpoints and must compare them. *)
-HB.instance Definition _ := hasDecEq.Build pol pol_eqP.
 
 Lemma pol_dec (a b : pol) : {a = b} + {a <> b}.
 Proof. by decide equality. Qed.

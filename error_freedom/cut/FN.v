@@ -30,8 +30,8 @@
 
 From mathcomp Require Import all_ssreflect.
 From Stdlib Require Import Eqdep_dec PeanoNat.
-From Tait Require Import PolBase PolTypes PolProc PolLTS PolErr PolTyping
-  PolLogRel PolEquiv PolCompat PolSem PolComb.
+From Tait Require Import Base Types Proc LTS Err Typing
+  LogRel Equiv Compat Sem Comb.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

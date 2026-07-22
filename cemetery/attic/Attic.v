@@ -13,12 +13,12 @@
       ([ltsfP_ren] is unused too but [ltsrP_ren] is needed by
       [compat_resP]'s binder-tunnelling step).
     - [ltstP_ren_inv]: backward τ-inversion under FULL injectivity,
-      superseded by [PolSem.ltstP_ren_inv_cov], whose coverage guard
+      superseded by [Sem.ltstP_ren_inv_cov], whose coverage guard
       is what the substitution lemma can actually supply (a collapse
       [scons y id] is never injective).
     - [compat_closeP], [compat_waitP], [compat_delP]: the closed-world
       compatibility lemmas, superseded by the σ-parametric
-      [fcompat_close], [fcompat_wait], [fcompat_del] of [PolFN.v],
+      [fcompat_close], [fcompat_wait], [fcompat_del] of [FN.v],
       which must additionally handle a MERGED subject.  [compat_endP]
       is not here: it survived, [fcompat_end] still calls it.
     - the [error_freeP] and [pcupd] APIs, and assorted scaffolding
@@ -29,15 +29,15 @@
     To check this file: copy it into the parent directory (the live
     development) and run
 
-        coqc -R . Tait PolAttic.v
+        coqc -R . Tait Attic.v
 
     It is not part of [_CoqProject]; nothing on the live path may
     ever depend on it. *)
 
 From mathcomp Require Import all_ssreflect.
 From Stdlib Require Import Eqdep_dec PeanoNat.
-From Tait Require Import PolBase PolTypes PolProc PolLTS PolErr PolTyping
-  PolLogRel PolEquiv PolCompat PolSem PolComb PolFN.
+From Tait Require Import Base Types Proc LTS Err Typing
+  LogRel Equiv Compat Sem Comb FN.
 
 Set Implicit Arguments.
 Unset Strict Implicit.

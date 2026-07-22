@@ -2,7 +2,7 @@
 
     The fundamental theorem is stated for OPEN terms under name
     substitutions that may MERGE the two ends of a session
-    ([PolBridge.v] supplies the semantic typing it inducts on).  This
+    ([Bridge.v] supplies the semantic typing it inducts on).  This
     file carries the machinery: valid substitutions [vok], the
     pushforward [spush] of a semantic context along one, and one
     compatibility lemma per semantic typing rule.
@@ -19,8 +19,8 @@
 
 From mathcomp Require Import all_ssreflect.
 From Stdlib Require Import Eqdep_dec PeanoNat.
-From Tait Require Import PolBase PolTypes PolProc PolLTS PolErr PolTyping
-  PolLogRel PolEquiv PolCompat PolSem PolComb PolBridge.
+From Tait Require Import Base Types Proc LTS Err Typing
+  LogRel Equiv Compat Sem Comb Bridge.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -1992,7 +1992,7 @@ Print Assumptions error_free_typedP.
 
     The cut discipline could not type this process: two sessions
     cross one parallel composition.  It is well typed here, it is
-    genuinely stuck ([PolTyping.no_step_deadlock]), and it is
+    genuinely stuck ([Typing.no_step_deadlock]), and it is
     error-free.  Deadlock freedom is what the move to split contexts
     gives up; error freedom is what it keeps. *)
 Example deadlock_error_free :
