@@ -9,3 +9,6 @@
 .nia.cache
 Makefile.coq
 Makefile.coq.conf
+Makefile
+Makefile.conf
+.Makefile.d
