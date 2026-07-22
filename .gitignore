@@ -7,8 +7,12 @@
 .*.aux
 .lia.cache
 .nia.cache
+# coq_makefile delegate, generated from _CoqProject by the committed Makefile
+CoqMakefile
+CoqMakefile.conf
+.CoqMakefile.d
+# legacy coq_makefile output names (kept ignored for stray older checkouts)
 Makefile.coq
 Makefile.coq.conf
-Makefile
 Makefile.conf
 .Makefile.d
