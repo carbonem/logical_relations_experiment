@@ -108,18 +108,6 @@ Proof.
   exact: scupd_zero_scons.
 Qed.
 
-(** ** The [swap01] kit *)
-
-Lemma swap01K n (x : ch n.+2) : swap_ch zero one (swap_ch zero one x) = x.
-Proof. by case: x => [[x|]|]. Qed.
-
-Lemma psubst_swap01K n (X : procP n.+2) :
-  psubst (swap_ch zero one) (psubst (swap_ch zero one) X) = X.
-Proof.
-  rewrite psubst_comp -[RHS]psubst_id.
-  apply: psubst_ext => x. exact: swap01K.
-Qed.
-
 Lemma psubst_up_shift n (B : procP n.+1) :
   psubst (up_ch shift) B = psubst (swap_ch zero one) (psubst shift B).
 Proof. rewrite psubst_comp. by apply: psubst_ext => -[x|]. Qed.
@@ -131,7 +119,7 @@ Proof. move=> [[x|]|] /=; by right. Qed.
 Lemma inj_swap01 n (Δ : sctxP n.+2) : inj_on (swap_ch zero one) Δ.
 Proof.
   move=> x1 x2 _ _ E.
-  by rewrite -(swap01K x1) -(swap01K x2) E.
+  by rewrite -(swap01_invol x1) -(swap01_invol x2) E.
 Qed.
 
 Lemma EsemP_swap01 k n (a b : option sslot) (Δ : sctxP n)
@@ -246,7 +234,7 @@ Proof.
         case: (pinv_r_resF HT) => B'' [-> HB''].
         rewrite psubst_up_shift in HB''.
         have HB2 := ltsrP_ren HB'' (swap_ch zero one).
-        rewrite psubst_swap01K in HB2.
+        rewrite psubst_swap01_invol in HB2.
         have Esub : pren (swap_ch zero one) (pshift (pshift (x, r)))
             = pshift (pshift (x, r)) by [].
         have Eobj : pren (swap_ch zero one) ((one, rd) : pch n.+2)
@@ -261,7 +249,7 @@ Proof.
           apply: EsemP_ext HE => z.
           case: z => [z|] //=. exact: scupd_shift_scons.
         have HE2 := EsemP_swap01 HE1.
-        rewrite psubst_swap01K in HE2.
+        rewrite psubst_swap01_invol in HE2.
         apply: IH.
         exact: HE2.
     + (* select *)
@@ -450,6 +438,8 @@ Proof.
     rewrite -[pole ρ T]pole_flip_dual. exact: sle_both.
   - move=> [_ [-> _]]. exact: sle_none.
 Qed.
+
+(** *** dmerge under context surgery *)
 
 (** A one-sided internal evolution pushes through the merge without
     touching the composite context. *)
@@ -661,7 +651,7 @@ Proof.
   have CV1 := conformD_V C1. have CV2 := conformD_V C2.
   have HPk := EsemP_antitone HP. have HQk := EsemP_antitone HQ.
   split.
-  - (* conformance *)
+  - (* ===== conformance ===== *)
     have CD1 : conformD Δ P by apply: conformD_sle C1; exact: dmerge_sleL.
     have CD2 : conformD Δ Q by apply: conformD_sle C2; exact: dmerge_sleR.
     split; last by split.
@@ -686,7 +676,7 @@ Proof.
     case: HofC => Hof'.
     + exact: (conformD_V CD1) _ _ Hof'.
     + exact: (conformD_V CD2) _ _ Hof'.
-  - (* value dispatch *)
+  - (* ===== value dispatch ===== *)
     move=> x r S HxS.
     have Hside : (Δ1 x = Some (SSep r S) /\ Δ2 x = None)
               \/ (Δ2 x = Some (SSep r S) /\ Δ1 x = None).
@@ -696,7 +686,7 @@ Proof.
       + move=> [ρ [T [_ _ ED]]]. by rewrite ED in HxS.
       + move=> [_ [_ [S0 ED]]]. by rewrite ED in HxS.
     case: Hside => -[HL HN].
-    + (* the left component owns the endpoint *)
+    + (* ===== the left component owns the endpoint ===== *)
       move: (V1 _ _ _ HL). clear HL.
       case: S HxS => [| |T S2|T S2|S1 S2|S1 S2] HxS /= VP.
       * (* close *)
@@ -820,7 +810,7 @@ Proof.
         exists Δmid. split=> //.
         apply: (IH _ _ _ _ _ _ _ HE1 HQk).
         apply: dmerge_updL HmMid _. apply: Or41. by split.
-    + (* the right component owns the endpoint *)
+    + (* ===== the right component owns the endpoint ===== *)
       move: (V2 _ _ _ HL). clear HL.
       case: S HxS => [| |T S2|T S2|S1 S2|S1 S2] HxS /= VQ.
       * (* close *)
@@ -939,7 +929,7 @@ Proof.
         exists Δmid. split=> //.
         apply: (IH _ _ _ _ _ _ _ HPk HE2).
         apply: dmerge_updR HmMid _. apply: Or42. by split.
-  - (* internal step *)
+  - (* ===== internal step ===== *)
     move=> R HT.
     have Hc8 := pinv_t_parF HT.
     case: Hc8

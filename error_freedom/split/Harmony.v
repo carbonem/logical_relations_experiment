@@ -117,8 +117,6 @@ Proof.
   exact: CGC_one (CG_PComm R (P ∥ Q)).
 Qed.
 
-Hint Resolve cong_passoc' : harmony.
-
 (** ** Reduction
 
     One axiom per communication kind, with the output on the left;
@@ -143,20 +141,10 @@ Inductive red : forall n, procP n -> procP n -> Prop :=
 
 (** ** Swap involution
 
-    [swap_ch zero one] is a self-inverse renaming of the top two
-    names; its process action is therefore an involution.  The
-    binder-exchange axiom [CG_NuSwap] is self-symmetric through it. *)
-
-Lemma swap01_invol n (z : ch n.+2) :
-  swap_ch zero one (swap_ch zero one z) = z.
-Proof. by case: z => [[z|]|]. Qed.
-
-Lemma psubst_swap01_invol n (P : procP n.+2) :
-  psubst (swap_ch zero one) (psubst (swap_ch zero one) P) = P.
-Proof.
-  rewrite psubst_comp -[RHS]psubst_id.
-  apply: psubst_ext => z. exact: swap01_invol.
-Qed.
+    [swap_ch zero one] is a self-inverse renaming of the top two names;
+    its process action [psubst_swap01_invol] is therefore an involution
+    (both lemmas now live in [Proc.v]).  The binder-exchange axiom
+    [CG_NuSwap] is self-symmetric through it. *)
 
 (** ** Reflexivity *)
 
@@ -467,11 +455,6 @@ Proof.
   - exact: PTS_refl.
   - exact: PTS_step (ltstP_ren Hst s) (IH _ _).
 Qed.
-
-(** ** Hints *)
-
-Hint Constructors cong1 cong red : harmony.
-Hint Resolve cong_refl cong1_refl cong_parL cong_parR cong_nu cong_sym : harmony.
 
 (** ** τ ⇒ red: the harmony lemma, forward direction
 
@@ -817,9 +800,9 @@ Proof. apply: lts_impl_red. exact: PT_CW (PC_Pfx (x, pos) ∅) (PW_Pfx (x, neg) 
 (** ** Structural congruence respects the visible LTS
 
     The [red] ⇒ τ direction rests on [cong] being a strong bisimulation
-    for every transition family.  Here are the FIVE mechanical
+    for every transition family.  Here are the SIX mechanical
     visible-action families -- close [ltscP], wait [ltswP], free send
-    [ltsfP], select [ltsselP], branch [ltsbrP].  Each [cong1_resp_lts*]
+    [ltsfP], select [ltsselP], branch [ltsbrP], receive [ltsrP].  Each [cong1_resp_lts*]
     is an induction on the one-layer congruence (19 cases): the
     parallel-monoid axioms and scope-extrusion axioms rearrange the
     transition through the residual-carrying inversions
@@ -1493,18 +1476,15 @@ Proof.
 Qed.
 
 
-(** ** Structural congruence respects receive and bound send
+(** ** Structural congruence respects bound send
 
-    The remaining two visible-family bisimulation lemmas.  Receive
-    [ltsrP] mirrors free send, save three deltas: the firing prefix is
-    [CG_Ins] (its residual a substitution instance, related by
-    [cong1_ren]), and the [CG_Extr']/[CG_NuSwap] frames go through the
-    open receive inversion [ltsrP_ren_inv], whose residual is uniform
-    in the received name.  Bound send [ltsbP] is heavier: its parallel
-    frames shift the idle component and its restriction rule re-binds
-    with a [swap_ch zero one], so the scope-extrusion and binder-swap
-    axioms need three renaming identities below and, for [CG_Extr]/
-    [CG_Extr'], the split into the [PB_Open] and [PB_Res] derivations. *)
+    The last visible-family bisimulation lemma; receive was handled in
+    the previous section.  Bound send [ltsbP] is the heaviest: its
+    parallel frames shift the idle component and its restriction rule
+    re-binds with a [swap_ch zero one], so the scope-extrusion and
+    binder-swap axioms need three renaming identities below and, for
+    [CG_Extr]/[CG_Extr'], the split into the [PB_Open] and [PB_Res]
+    derivations. *)
 
 Lemma psubst_swap01_shift2 n (Q : procP n) :
   psubst (swap_ch zero one) (psubst shift (psubst shift Q)) = psubst shift (psubst shift Q).
@@ -1856,10 +1836,6 @@ Proof.
   move=> Hinj [z1|] [z2|] //= E.
   by rewrite (Hinj z1 z2 (shift_name_inj E)).
 Qed.
-
-Lemma up_shift_name_inj n :
-  forall z1 z2 : ch n.+1, up_ch shift z1 = up_ch shift z2 -> z1 = z2.
-Proof. exact: up_ch_name_inj (@shift_name_inj n). Qed.
 
 (** ** τ-transition inversions at ν and ∥ *)
 

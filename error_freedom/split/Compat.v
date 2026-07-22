@@ -49,8 +49,8 @@ Proof.
   - case=> R HT. by case: (pinv_c_closeF HT) => -> _.
   - case=> R HT. by case: (pinv_w_close HT).
   - case=> [[d [R HT]]|[r [R HT]]];
-      [by case: (pinv_f_close2 HT) | by case: (pinv_b_close HT)].
-  - case=> d [R HT]. by case: (pinv_r_close2 HT).
+      [by case: (pinv_f_close HT) | by case: (pinv_b_close HT)].
+  - case=> d [R HT]. by case: (pinv_r_close HT).
   - case=> b [R HT]. by case: (pinv_sel_close HT).
   - case=> b [R HT]. by case: (pinv_br_close HT).
 Qed.
@@ -62,8 +62,8 @@ Proof.
   - case=> R HT. by case: (pinv_c_wait HT).
   - case=> R HT. by case: (pinv_w_waitF HT) => -> _.
   - case=> [[d [R HT]]|[r [R HT]]];
-      [by case: (pinv_f_wait2 HT) | by case: (pinv_b_wait HT)].
-  - case=> d [R HT]. by case: (pinv_r_wait2 HT).
+      [by case: (pinv_f_wait HT) | by case: (pinv_b_wait HT)].
+  - case=> d [R HT]. by case: (pinv_r_wait HT).
   - case=> b [R HT]. by case: (pinv_sel_wait HT).
   - case=> b [R HT]. by case: (pinv_br_wait HT).
 Qed.

@@ -327,19 +327,6 @@ Lemma pinv_b_ins n (c e : pch n) r r' (K : procP n.+1) (R : procP n.+1) :
   ltsbP c r (PIns e r' K) R -> False.
 Proof. move=> H. by pinv H. Qed.
 
-Lemma pinv_f_wait2 n (c d e : pch n) K R :
-  ltsfP c d (PWait e K) R -> False.
-Proof. move=> H. by pinv H. Qed.
-Lemma pinv_r_wait2 n (c d e : pch n) K R :
-  ltsrP c d (PWait e K) R -> False.
-Proof. move=> H. by pinv H. Qed.
-Lemma pinv_f_close2 n (c d e : pch n) K R :
-  ltsfP c d (PClose e K) R -> False.
-Proof. move=> H. by pinv H. Qed.
-Lemma pinv_r_close2 n (c d e : pch n) K R :
-  ltsrP c d (PClose e K) R -> False.
-Proof. move=> H. by pinv H. Qed.
-
 (** No prefix (nor ∅) performs an internal step. *)
 Lemma pinv_t_end n (R : procP n) : ltstP PEnd R -> False.
 Proof. move=> H. by pinv H. Qed.

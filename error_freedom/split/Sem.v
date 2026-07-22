@@ -719,7 +719,7 @@ Proof.
       split; last by rewrite Ec2.
       by rewrite -Ec1 E'.
     case: Sw HwS => [| |T S2|T S2|S1 S2|S1 S2] HwS /=.
-    + (* SClose *)
+    + (* ===== SClose ===== *)
       move=> P' HT.
       case: (ltscP_ren_inv HT erefl) => c [P0 [E1 -> H0]].
       have Hof : offersP AClose c P by exists P0.
@@ -747,7 +747,7 @@ Proof.
       apply: IH HE0.
       * apply: agree_scupd => //. by rewrite HS.
       * apply: inj_on_sub Hinj. apply: owned_scupd_sub. by rewrite HS.
-    + (* SSend *)
+    + (* ===== SSend ===== *)
       split.
       * (* free send *)
         move=> y rd P' HT.
@@ -799,7 +799,7 @@ Proof.
         -- apply: agree_sscons. apply: agree_scupd => //. by rewrite HS.
         -- apply: inj_sscons. apply: inj_on_sub Hinj.
            apply: owned_scupd_sub. by rewrite HS.
-    + (* SRecv *)
+    + (* ===== SRecv ===== *)
       split.
       * move=> y rd P' HT. split.
         -- (* fresh reception *)
@@ -1078,7 +1078,7 @@ Proof.
            ++ apply: agree_sscons. apply: agree_scupd => //. by rewrite HS.
            ++ apply: inj_sscons. apply: inj_on_sub Hinj.
               apply: owned_scupd_sub. by rewrite HS.
-    + (* SSel *)
+    + (* ===== SSel ===== *)
       move=> b P' HT.
       case: (ltsselP_ren_inv HT erefl) => c [P0 [E1 -> H0]].
       have Hof : offersP ASel c P by exists b, P0.
@@ -1162,7 +1162,7 @@ Proof.
         -- apply: agree_scupd => //. by rewrite HmC HS.
         -- apply: inj_on_sub Hinj'. apply: owned_scupd_sub.
            by rewrite HmC HS.
-  - move=> P' Hst.
+  - (* ===== internal step ===== *) move=> P' Hst.
     have HG : forall a (c : pch m), offersP a c P -> Δm c.1 <> None.
       move=> a c Hof.
       case: (C1 _ _ Hof) => S' [HS' _].

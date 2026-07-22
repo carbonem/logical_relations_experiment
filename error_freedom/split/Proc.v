@@ -168,3 +168,16 @@ Proof.
   - by rewrite pren_id IH.
   - by rewrite pren_id IH1 IH2.
 Qed.
+
+(** ** Swap of the top two names is an involution *)
+
+Lemma swap01_invol n (z : ch n.+2) :
+  swap_ch zero one (swap_ch zero one z) = z.
+Proof. by case: z => [[z|]|]. Qed.
+
+Lemma psubst_swap01_invol n (P : procP n.+2) :
+  psubst (swap_ch zero one) (psubst (swap_ch zero one) P) = P.
+Proof.
+  rewrite psubst_comp -[RHS]psubst_id.
+  apply: psubst_ext => z. exact: swap01_invol.
+Qed.

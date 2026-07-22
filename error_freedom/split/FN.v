@@ -719,11 +719,11 @@ Proof.
         by rewrite (spush_upd_none_solo Ho Huniq).
       * move=> R HT. by case: (pinv_w_close HT).
       * split.
-        -- move=> y' rd' R HT. by case: (pinv_f_close2 HT).
+        -- move=> y' rd' R HT. by case: (pinv_f_close HT).
         -- move=> r' R HT. by case: (pinv_b_close HT).
       * split.
-        -- move=> y' rd' R HT. by case: (pinv_r_close2 HT).
-        -- move=> rd' R HT. by case: (pinv_r_close2 HT).
+        -- move=> y' rd' R HT. by case: (pinv_r_close HT).
+        -- move=> rd' R HT. by case: (pinv_r_close HT).
     + move=> b R HT. by case: (pinv_sel_close HT).
     + move=> b R HT. by case: (pinv_br_close HT).
     + move=> R Hst. by case: (pinv_t_close Hst).
@@ -744,11 +744,11 @@ Proof.
         by rewrite Hpush in HwS.
       * move=> R HT. by case: (pinv_w_close HT).
       * split.
-        -- move=> y' rd' R HT. by case: (pinv_f_close2 HT).
+        -- move=> y' rd' R HT. by case: (pinv_f_close HT).
         -- move=> r' R HT. by case: (pinv_b_close HT).
       * split.
-        -- move=> y' rd' R HT. by case: (pinv_r_close2 HT).
-        -- move=> rd' R HT. by case: (pinv_r_close2 HT).
+        -- move=> y' rd' R HT. by case: (pinv_r_close HT).
+        -- move=> rd' R HT. by case: (pinv_r_close HT).
     + move=> b R HT. by case: (pinv_sel_close HT).
     + move=> b R HT. by case: (pinv_br_close HT).
     + move=> R Hst. by case: (pinv_t_close Hst).
@@ -784,11 +784,11 @@ Proof.
         apply: EsemP_ext (IH _ _ (vok_upd_none (x := x) Hv) k) => v.
         by rewrite (spush_upd_none_solo Ho Huniq).
       * split.
-        -- move=> y' rd' R HT. by case: (pinv_f_wait2 HT).
+        -- move=> y' rd' R HT. by case: (pinv_f_wait HT).
         -- move=> r' R HT. by case: (pinv_b_wait HT).
       * split.
-        -- move=> y' rd' R HT. by case: (pinv_r_wait2 HT).
-        -- move=> rd' R HT. by case: (pinv_r_wait2 HT).
+        -- move=> y' rd' R HT. by case: (pinv_r_wait HT).
+        -- move=> rd' R HT. by case: (pinv_r_wait HT).
     + move=> b R HT. by case: (pinv_sel_wait HT).
     + move=> b R HT. by case: (pinv_br_wait HT).
     + move=> R Hst. by case: (pinv_t_wait Hst).
@@ -807,11 +807,11 @@ Proof.
         move: Ec' => -[E1 E2]. subst w rw.
         by rewrite Hpush in HwS.
       * split.
-        -- move=> y' rd' R HT. by case: (pinv_f_wait2 HT).
+        -- move=> y' rd' R HT. by case: (pinv_f_wait HT).
         -- move=> r' R HT. by case: (pinv_b_wait HT).
       * split.
-        -- move=> y' rd' R HT. by case: (pinv_r_wait2 HT).
-        -- move=> rd' R HT. by case: (pinv_r_wait2 HT).
+        -- move=> y' rd' R HT. by case: (pinv_r_wait HT).
+        -- move=> rd' R HT. by case: (pinv_r_wait HT).
     + move=> b R HT. by case: (pinv_sel_wait HT).
     + move=> b R HT. by case: (pinv_br_wait HT).
     + move=> R Hst. by case: (pinv_t_wait Hst).
@@ -1631,11 +1631,11 @@ Proof.
       by rewrite Hpush in HwS.
     + move=> R HT. by case: (pinv_w_close HT).
     + split.
-      * move=> y' rd' R HT. by case: (pinv_f_close2 HT).
+      * move=> y' rd' R HT. by case: (pinv_f_close HT).
       * move=> r' R HT. by case: (pinv_b_close HT).
     + split.
-      * move=> y' rd' R HT. by case: (pinv_r_close2 HT).
-      * move=> rd' R HT. by case: (pinv_r_close2 HT).
+      * move=> y' rd' R HT. by case: (pinv_r_close HT).
+      * move=> rd' R HT. by case: (pinv_r_close HT).
     + move=> b R HT. by case: (pinv_sel_close HT).
     + move=> b R HT. by case: (pinv_br_close HT).
   - move=> R Hst. by case: (pinv_t_close Hst).
@@ -1659,11 +1659,11 @@ Proof.
       move: Ec' => -[E1 E2]. subst w rw.
       by rewrite Hpush in HwS.
     + split.
-      * move=> y' rd' R HT. by case: (pinv_f_wait2 HT).
+      * move=> y' rd' R HT. by case: (pinv_f_wait HT).
       * move=> r' R HT. by case: (pinv_b_wait HT).
     + split.
-      * move=> y' rd' R HT. by case: (pinv_r_wait2 HT).
-      * move=> rd' R HT. by case: (pinv_r_wait2 HT).
+      * move=> y' rd' R HT. by case: (pinv_r_wait HT).
+      * move=> rd' R HT. by case: (pinv_r_wait HT).
     + move=> b R HT. by case: (pinv_sel_wait HT).
     + move=> b R HT. by case: (pinv_br_wait HT).
   - move=> R Hst. by case: (pinv_t_wait Hst).
