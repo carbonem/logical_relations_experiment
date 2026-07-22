@@ -58,8 +58,6 @@ Inductive cong1 : forall n, procP n -> procP n -> Prop :=
     cong1 (P ∥ Q) (Q ∥ P)
 | CG_PAssoc : forall n (P Q R : procP n),
     cong1 ((P ∥ Q) ∥ R) (P ∥ (Q ∥ R))
-| CG_PAssoc' : forall n (P Q R : procP n),
-    cong1 (P ∥ (Q ∥ R)) ((P ∥ Q) ∥ R)
 | CG_PZero : forall n (P : procP n),
     cong1 (P ∥ ∅) P
 | CG_PZero' : forall n (P : procP n),
@@ -105,6 +103,21 @@ Inductive cong : forall n, procP n -> procP n -> Prop :=
     cong P Q -> cong Q R -> cong P R.
 
 Notation "P ≡ Q" := (cong P Q) (at level 70) : pol_scope.
+
+(** Reverse associativity is derivable, so it is not a [cong1]
+    constructor: the commutativity/associativity sandwich
+      P ∥ (Q ∥ R) ≡ (Q ∥ R) ∥ P ≡ Q ∥ (R ∥ P)
+                  ≡ (R ∥ P) ∥ Q ≡ R ∥ (P ∥ Q) ≡ (P ∥ Q) ∥ R. *)
+Lemma cong_passoc' n (P Q R : procP n) : (P ∥ (Q ∥ R)) ≡ ((P ∥ Q) ∥ R).
+Proof.
+  apply: (CGC_trans (Q := (Q ∥ R) ∥ P)); first exact: CGC_one (CG_PComm P (Q ∥ R)).
+  apply: (CGC_trans (Q := Q ∥ (R ∥ P))); first exact: CGC_one (CG_PAssoc Q R P).
+  apply: (CGC_trans (Q := (R ∥ P) ∥ Q)); first exact: CGC_one (CG_PComm Q (R ∥ P)).
+  apply: (CGC_trans (Q := R ∥ (P ∥ Q))); first exact: CGC_one (CG_PAssoc R P Q).
+  exact: CGC_one (CG_PComm R (P ∥ Q)).
+Qed.
+
+Hint Resolve cong_passoc' : harmony.
 
 (** ** Reduction
 
@@ -163,46 +176,6 @@ Qed.
 
 Lemma cong_refl n (P : procP n) : cong P P.
 Proof. apply: CGC_one. exact: cong1_refl. Qed.
-
-(** ** Symmetry
-
-    The axioms come in symmetric pairs, so every case mirrors a
-    constructor; [CG_NuSwap] is self-symmetric via
-    [psubst_swap01_invol] (the swapped-swapped body reappears). *)
-
-Lemma cong1_sym n (P Q : procP n) : cong1 P Q -> cong1 Q P.
-Proof.
-  move=> H; elim: H => {n P Q}.
-  - move=> n P Q. exact: CG_PComm.
-  - move=> n P Q R. exact: CG_PAssoc'.
-  - move=> n P Q R. exact: CG_PAssoc.
-  - move=> n P. exact: CG_PZero'.
-  - move=> n P. exact: CG_PZero.
-  - move=> n. exact: CG_NuZero'.
-  - move=> n. exact: CG_NuZero.
-  - move=> n P Q. exact: CG_Extr'.
-  - move=> n P Q. exact: CG_Extr.
-  - move=> n P.
-    set Q := psubst (swap_ch zero one) P.
-    have -> : P = psubst (swap_ch zero one) Q by rewrite /Q psubst_swap01_invol.
-    exact: CG_NuSwap.
-  - move=> n. exact: CG_Zero.
-  - move=> n P P' Q _ IH. exact: CG_ParL IH.
-  - move=> n P P' _ IH. exact: CG_Res IH.
-  - move=> n c K K' _ IH. exact: CG_Wait IH.
-  - move=> n c K K' _ IH. exact: CG_Close IH.
-  - move=> n c r K K' _ IH. exact: CG_Ins IH.
-  - move=> n c d K K' _ IH. exact: CG_Del IH.
-  - move=> n c b K K' _ IH. exact: CG_Sel IH.
-  - move=> n c K1 K1' K2 K2' _ IH1 _ IH2. exact: CG_Bra IH1 IH2.
-Qed.
-
-Lemma cong_sym n (P Q : procP n) : cong P Q -> cong Q P.
-Proof.
-  move=> H; elim: H => {n P Q}.
-  - move=> n P Q Hc. exact: CGC_one (cong1_sym Hc).
-  - move=> n P Q R _ IH1 _ IH2. exact: CGC_trans IH2 IH1.
-Qed.
 
 (** ** Derived congruences for [cong]
 
@@ -275,6 +248,48 @@ Proof.
     move=> A B Hc. exact: CG_Bra (cong1_refl K1') Hc.
 Qed.
 
+(** ** Symmetry
+
+    The axioms come in symmetric pairs, so every case mirrors a
+    constructor; [CG_NuSwap] is self-symmetric via
+    [psubst_swap01_invol] (the swapped-swapped body reappears).  The
+    reversed associativity step is the derived [cong_passoc'], and the
+    congruence rules recurse through the derived [cong_*] lifts, so
+    [cong1_sym] lands in [cong] rather than [cong1]. *)
+
+Lemma cong1_sym n (P Q : procP n) : cong1 P Q -> cong Q P.
+Proof.
+  move=> H; elim: H => {n P Q}.
+  - move=> n P Q. apply: CGC_one. exact: CG_PComm.
+  - move=> n P Q R. exact: cong_passoc'.
+  - move=> n P. apply: CGC_one. exact: CG_PZero'.
+  - move=> n P. apply: CGC_one. exact: CG_PZero.
+  - move=> n. apply: CGC_one. exact: CG_NuZero'.
+  - move=> n. apply: CGC_one. exact: CG_NuZero.
+  - move=> n P Q. apply: CGC_one. exact: CG_Extr'.
+  - move=> n P Q. apply: CGC_one. exact: CG_Extr.
+  - move=> n P. apply: CGC_one.
+    set Q := psubst (swap_ch zero one) P.
+    have -> : P = psubst (swap_ch zero one) Q by rewrite /Q psubst_swap01_invol.
+    exact: CG_NuSwap.
+  - move=> n. apply: CGC_one. exact: CG_Zero.
+  - move=> n P P' Q _ IH. exact: cong_parL IH.
+  - move=> n P P' _ IH. exact: cong_nu IH.
+  - move=> n c K K' _ IH. exact: cong_wait IH.
+  - move=> n c K K' _ IH. exact: cong_close IH.
+  - move=> n c r K K' _ IH. exact: cong_ins IH.
+  - move=> n c d K K' _ IH. exact: cong_del IH.
+  - move=> n c b K K' _ IH. exact: cong_sel IH.
+  - move=> n c K1 K1' K2 K2' _ IH1 _ IH2. exact: cong_bra IH1 IH2.
+Qed.
+
+Lemma cong_sym n (P Q : procP n) : cong P Q -> cong Q P.
+Proof.
+  move=> H; elim: H => {n P Q}.
+  - move=> n P Q Hc. exact: cong1_sym Hc.
+  - move=> n P Q R _ IH1 _ IH2. exact: CGC_trans IH2 IH1.
+Qed.
+
 (** ** Renaming stability of congruence
 
     [CG_Extr]/[CG_Extr'] use [psubst_shift_comm] to push [up_ch s]
@@ -287,7 +302,6 @@ Proof.
   elim: H => {n P Q}.
   - move=> n P Q m s /=. exact: CG_PComm.
   - move=> n P Q R m s /=. exact: CG_PAssoc.
-  - move=> n P Q R m s /=. exact: CG_PAssoc'.
   - move=> n P m s /=. exact: CG_PZero.
   - move=> n P m s /=. exact: CG_PZero'.
   - move=> n m s /=. exact: CG_NuZero.
@@ -488,13 +502,13 @@ Proof. exact: pren_flip. Qed.
     [R_Par] through [CG_PComm]. *)
 
 Lemma cong_pullL n (S Q1 Q2 : procP n) : (S ∥ (Q1 ∥ Q2)) ≡ ((S ∥ Q1) ∥ Q2).
-Proof. apply: CGC_one. exact: CG_PAssoc'. Qed.
+Proof. exact: cong_passoc'. Qed.
 
 Lemma cong_pullR n (S Q1 Q2 : procP n) : (S ∥ (Q1 ∥ Q2)) ≡ ((S ∥ Q2) ∥ Q1).
 Proof.
   apply: (CGC_trans (Q := S ∥ (Q2 ∥ Q1))).
   - apply: cong_parR. apply: CGC_one. exact: CG_PComm.
-  - apply: CGC_one. exact: CG_PAssoc'.
+  - exact: cong_passoc'.
 Qed.
 
 Lemma cong_exL n (P1 P2 Q : procP n) : ((P1 ∥ P2) ∥ Q) ≡ ((P1 ∥ Q) ∥ P2).
@@ -503,7 +517,7 @@ Proof.
   - apply: CGC_one. exact: CG_PAssoc.
   - apply: (CGC_trans (Q := P1 ∥ (Q ∥ P2))).
     + apply: cong_parR. apply: CGC_one. exact: CG_PComm.
-    + apply: CGC_one. exact: CG_PAssoc'.
+    + exact: cong_passoc'.
 Qed.
 
 Lemma cong_exR n (P1 P2 Q : procP n) : ((P1 ∥ P2) ∥ Q) ≡ ((P2 ∥ Q) ∥ P1).
@@ -514,7 +528,7 @@ Proof.
     + apply: CGC_one. exact: CG_PAssoc.
     + apply: (CGC_trans (Q := P2 ∥ (Q ∥ P1))).
       * apply: cong_parR. apply: CGC_one. exact: CG_PComm.
-      * apply: CGC_one. exact: CG_PAssoc'.
+      * exact: cong_passoc'.
 Qed.
 
 Lemma red_congL n (P P2 Q : procP n) : P ≡ P2 -> red P2 Q -> red P Q.
@@ -860,16 +874,6 @@ Proof.
           [apply: PC_ParR; exact: PC_ParL HB2 | apply: CGC_one; exact: CG_PAssoc].
     + exists (P ∥ (Q ∥ B')); split;
         [apply: PC_ParR; exact: PC_ParR HB | apply: CGC_one; exact: CG_PAssoc].
-  - (* CG_PAssoc' *)
-    move=> n P Q R c P' HT.
-    case: (ltscP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
-    + exists ((A' ∥ Q) ∥ R); split;
-        [apply: PC_ParL; exact: PC_ParL HA | apply: CGC_one; exact: CG_PAssoc'].
-    + case: (ltscP_parE HB) => [[A2 [-> HA2]]|[B2 [-> HB2]]].
-      * exists ((P ∥ A2) ∥ R); split;
-          [apply: PC_ParL; exact: PC_ParR HA2 | apply: CGC_one; exact: CG_PAssoc'].
-      * exists ((P ∥ Q) ∥ B2); split;
-          [exact: PC_ParR HB2 | apply: CGC_one; exact: CG_PAssoc'].
   - (* CG_PZero *)
     move=> n P c P' HT.
     case: (ltscP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
@@ -986,15 +990,6 @@ Proof.
           [apply: PW_ParR; exact: PW_ParL HB2 | apply: CGC_one; exact: CG_PAssoc].
     + exists (P ∥ (Q ∥ B')); split;
         [apply: PW_ParR; exact: PW_ParR HB | apply: CGC_one; exact: CG_PAssoc].
-  - move=> n P Q R c P' HT.
-    case: (ltswP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
-    + exists ((A' ∥ Q) ∥ R); split;
-        [apply: PW_ParL; exact: PW_ParL HA | apply: CGC_one; exact: CG_PAssoc'].
-    + case: (ltswP_parE HB) => [[A2 [-> HA2]]|[B2 [-> HB2]]].
-      * exists ((P ∥ A2) ∥ R); split;
-          [apply: PW_ParL; exact: PW_ParR HA2 | apply: CGC_one; exact: CG_PAssoc'].
-      * exists ((P ∥ Q) ∥ B2); split;
-          [exact: PW_ParR HB2 | apply: CGC_one; exact: CG_PAssoc'].
   - move=> n P c P' HT.
     case: (ltswP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
     + exists A'; split; [exact: HA | apply: CGC_one; exact: CG_PZero].
@@ -1096,15 +1091,6 @@ Proof.
           [apply: PF_ParR; exact: PF_ParL HB2 | apply: CGC_one; exact: CG_PAssoc].
     + exists (P ∥ (Q ∥ B')); split;
         [apply: PF_ParR; exact: PF_ParR HB | apply: CGC_one; exact: CG_PAssoc].
-  - move=> n P Q R c d P' HT.
-    case: (ltsfP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
-    + exists ((A' ∥ Q) ∥ R); split;
-        [apply: PF_ParL; exact: PF_ParL HA | apply: CGC_one; exact: CG_PAssoc'].
-    + case: (ltsfP_parE HB) => [[A2 [-> HA2]]|[B2 [-> HB2]]].
-      * exists ((P ∥ A2) ∥ R); split;
-          [apply: PF_ParL; exact: PF_ParR HA2 | apply: CGC_one; exact: CG_PAssoc'].
-      * exists ((P ∥ Q) ∥ B2); split;
-          [exact: PF_ParR HB2 | apply: CGC_one; exact: CG_PAssoc'].
   - move=> n P c d P' HT.
     case: (ltsfP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
     + exists A'; split; [exact: HA | apply: CGC_one; exact: CG_PZero].
@@ -1207,15 +1193,6 @@ Proof.
           [apply: PS_ParR; exact: PS_ParL HB2 | apply: CGC_one; exact: CG_PAssoc].
     + exists (P ∥ (Q ∥ B')); split;
         [apply: PS_ParR; exact: PS_ParR HB | apply: CGC_one; exact: CG_PAssoc].
-  - move=> n P Q R c b P' HT.
-    case: (ltsselP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
-    + exists ((A' ∥ Q) ∥ R); split;
-        [apply: PS_ParL; exact: PS_ParL HA | apply: CGC_one; exact: CG_PAssoc'].
-    + case: (ltsselP_parE HB) => [[A2 [-> HA2]]|[B2 [-> HB2]]].
-      * exists ((P ∥ A2) ∥ R); split;
-          [apply: PS_ParL; exact: PS_ParR HA2 | apply: CGC_one; exact: CG_PAssoc'].
-      * exists ((P ∥ Q) ∥ B2); split;
-          [exact: PS_ParR HB2 | apply: CGC_one; exact: CG_PAssoc'].
   - move=> n P c b P' HT.
     case: (ltsselP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
     + exists A'; split; [exact: HA | apply: CGC_one; exact: CG_PZero].
@@ -1317,15 +1294,6 @@ Proof.
           [apply: PBR_ParR; exact: PBR_ParL HB2 | apply: CGC_one; exact: CG_PAssoc].
     + exists (P ∥ (Q ∥ B')); split;
         [apply: PBR_ParR; exact: PBR_ParR HB | apply: CGC_one; exact: CG_PAssoc].
-  - move=> n P Q R c b P' HT.
-    case: (ltsbrP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
-    + exists ((A' ∥ Q) ∥ R); split;
-        [apply: PBR_ParL; exact: PBR_ParL HA | apply: CGC_one; exact: CG_PAssoc'].
-    + case: (ltsbrP_parE HB) => [[A2 [-> HA2]]|[B2 [-> HB2]]].
-      * exists ((P ∥ A2) ∥ R); split;
-          [apply: PBR_ParL; exact: PBR_ParR HA2 | apply: CGC_one; exact: CG_PAssoc'].
-      * exists ((P ∥ Q) ∥ B2); split;
-          [exact: PBR_ParR HB2 | apply: CGC_one; exact: CG_PAssoc'].
   - move=> n P c b P' HT.
     case: (ltsbrP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
     + exists A'; split; [exact: HA | apply: CGC_one; exact: CG_PZero].
@@ -1431,16 +1399,6 @@ Proof.
           [apply: PR_ParR; exact: PR_ParL HB2 | apply: CGC_one; exact: CG_PAssoc].
     + exists (P ∥ (Q ∥ B')); split;
         [apply: PR_ParR; exact: PR_ParR HB | apply: CGC_one; exact: CG_PAssoc].
-  - (* CG_PAssoc' *)
-    move=> n P Q R c d P' HT.
-    case: (ltsrP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
-    + exists ((A' ∥ Q) ∥ R); split;
-        [apply: PR_ParL; exact: PR_ParL HA | apply: CGC_one; exact: CG_PAssoc'].
-    + case: (ltsrP_parE HB) => [[A2 [-> HA2]]|[B2 [-> HB2]]].
-      * exists ((P ∥ A2) ∥ R); split;
-          [apply: PR_ParL; exact: PR_ParR HA2 | apply: CGC_one; exact: CG_PAssoc'].
-      * exists ((P ∥ Q) ∥ B2); split;
-          [exact: PR_ParR HB2 | apply: CGC_one; exact: CG_PAssoc'].
   - (* CG_PZero *)
     move=> n P c d P' HT.
     case: (ltsrP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
@@ -1605,16 +1563,6 @@ Proof.
           [apply: PB_ParR; exact: PB_ParL HB2 | apply: CGC_one; exact: CG_PAssoc].
     + exists (psubst shift P ∥ (psubst shift Q ∥ B')); split;
         [apply: PB_ParR; exact: PB_ParR HB | apply: CGC_one; exact: CG_PAssoc].
-  - (* CG_PAssoc' *)
-    move=> n P Q R c r P' HT.
-    case: (ltsbP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
-    + exists ((A' ∥ psubst shift Q) ∥ psubst shift R); split;
-        [apply: PB_ParL; exact: PB_ParL HA | apply: CGC_one; exact: CG_PAssoc'].
-    + case: (ltsbP_parE HB) => [[A2 [-> HA2]]|[B2 [-> HB2]]].
-      * exists ((psubst shift P ∥ A2) ∥ psubst shift R); split;
-          [apply: PB_ParL; exact: PB_ParR HA2 | apply: CGC_one; exact: CG_PAssoc'].
-      * exists ((psubst shift P ∥ psubst shift Q) ∥ B2); split;
-          [exact: PB_ParR HB2 | apply: CGC_one; exact: CG_PAssoc'].
   - (* CG_PZero *)
     move=> n P c r P' HT.
     case: (ltsbP_parE HT) => [[A' [-> HA]]|[B' [-> HB]]].
@@ -2059,20 +2007,20 @@ Proof.
                 | [ [c [r [Q2 [R2 [-> HQ HR]]]]]
                   | [ [c [b [Q2 [R2 [-> HQ HR]]]]]
                     | [c [b [Q2 [R2 [-> HQ HR]]]] ]]]]]]]]]].
-  - exists ((P ∥ Q2) ∥ R); split; [by eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
-  - exists ((P ∥ Q) ∥ R2); split; [by eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
-  - exists ((P ∥ Q2) ∥ R2); split; [by eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
-  - exists ((P ∥ Q2) ∥ R2); split; [by eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
-  - exists ((P ∥ Q2) ∥ R2); split; [by eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
-  - exists ((P ∥ Q2) ∥ R2); split; [by eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
+  - exists ((P ∥ Q2) ∥ R); split; [by eauto with htr | exact: cong_passoc'].
+  - exists ((P ∥ Q) ∥ R2); split; [by eauto with htr | exact: cong_passoc'].
+  - exists ((P ∥ Q2) ∥ R2); split; [by eauto with htr | exact: cong_passoc'].
+  - exists ((P ∥ Q2) ∥ R2); split; [by eauto with htr | exact: cong_passoc'].
+  - exists ((P ∥ Q2) ∥ R2); split; [by eauto with htr | exact: cong_passoc'].
+  - exists ((P ∥ Q2) ∥ R2); split; [by eauto with htr | exact: cong_passoc'].
   - exists ((ν) ((⟨shift⟩ P ∥ Q2) ∥ R2)); split;
       last (apply: cong_sym; exact: cong_assoc_extrB).
     apply: PT_BR; last exact: HR. apply: PB_ParR. exact: HQ.
   - exists ((ν) ((⟨shift⟩ P ∥ Q2) ∥ R2)); split;
       last (apply: cong_sym; exact: cong_assoc_extrB).
     apply: PT_RB; last exact: HR. rewrite psubst_shift_par. apply: PR_ParR. exact: HQ.
-  - exists ((P ∥ Q2) ∥ R2); split; [by eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
-  - exists ((P ∥ Q2) ∥ R2); split; [by eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
+  - exists ((P ∥ Q2) ∥ R2); split; [by eauto with htr | exact: cong_passoc'].
+  - exists ((P ∥ Q2) ∥ R2); split; [by eauto with htr | exact: cong_passoc'].
 Qed.
 
 (** ** τ bisimulation *)
@@ -2150,54 +2098,6 @@ Proof.
     + case: (ltsbrP_parE HA) => [[P2 [-> HP2]]|[Q2 [-> HQ2]]];
         [exists (P2 ∥ (Q ∥ B')) | exists (P ∥ (Q2 ∥ B'))];
         split; by [eauto with htr | apply: CGC_one; exact: CG_PAssoc].
-  - (* CG_PAssoc' *)
-    move=> n P Q R T HT.
-    case: (ltstP_parE HT) =>
-      [ [A' [-> HA]]
-      | [ [B' [-> HB]]
-        | [ [c [A' [B' [-> HA HB]]]]
-          | [ [c [A' [B' [-> HA HB]]]]
-            | [ [c [d [A' [B' [-> HA HB]]]]]
-              | [ [c [d [A' [B' [-> HA HB]]]]]
-                | [ [c [r [A' [B' [-> HA HB]]]]]
-                  | [ [c [r [A' [B' [-> HA HB]]]]]
-                    | [ [c [b [A' [B' [-> HA HB]]]]]
-                      | [c [b [A' [B' [-> HA HB]]]] ]]]]]]]]]].
-    + exists ((A' ∥ Q) ∥ R); split; [by eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
-    + case: (ltst_pushL P HB) => X [HX HcX]. by exists X.
-    + case: (ltswP_parE HB) => [[Q2 [-> HQ2]]|[R2 [-> HR2]]];
-        [exists ((A' ∥ Q2) ∥ R) | exists ((A' ∥ Q) ∥ R2)];
-        split; by [eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
-    + case: (ltscP_parE HB) => [[Q2 [-> HQ2]]|[R2 [-> HR2]]];
-        [exists ((A' ∥ Q2) ∥ R) | exists ((A' ∥ Q) ∥ R2)];
-        split; by [eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
-    + case: (ltsrP_parE HB) => [[Q2 [-> HQ2]]|[R2 [-> HR2]]];
-        [exists ((A' ∥ Q2) ∥ R) | exists ((A' ∥ Q) ∥ R2)];
-        split; by [eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
-    + case: (ltsfP_parE HB) => [[Q2 [-> HQ2]]|[R2 [-> HR2]]];
-        [exists ((A' ∥ Q2) ∥ R) | exists ((A' ∥ Q) ∥ R2)];
-        split; by [eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
-    + move: HB; rewrite psubst_shift_par => HB.
-      case: (ltsrP_parE HB) => [[B2 [-> HB2]]|[B2 [-> HB2]]].
-      * exists (((ν) (A' ∥ B2)) ∥ R); split.
-        -- apply: PT_ParL. apply: PT_BR; first exact: HA. exact: HB2.
-        -- apply: cong_sym. exact: cong_extr_assoc.
-      * exists ((ν) ((A' ∥ ⟨shift⟩ Q) ∥ B2)); split.
-        -- apply: PT_BR; last exact: HB2. apply: PB_ParL. exact: HA.
-        -- apply: cong_nu. apply: CGC_one. exact: CG_PAssoc'.
-    + case: (ltsbP_parE HB) => [[B2 [-> HB2]]|[B2 [-> HB2]]].
-      * exists (((ν) (A' ∥ B2)) ∥ R); split.
-        -- apply: PT_ParL. apply: PT_RB; first exact: HA. exact: HB2.
-        -- apply: cong_sym. exact: cong_extr_assoc.
-      * exists ((ν) ((A' ∥ ⟨shift⟩ Q) ∥ B2)); split.
-        -- apply: PT_RB; last exact: HB2. rewrite psubst_shift_par. apply: PR_ParL. exact: HA.
-        -- apply: cong_nu. apply: CGC_one. exact: CG_PAssoc'.
-    + case: (ltsbrP_parE HB) => [[Q2 [-> HQ2]]|[R2 [-> HR2]]];
-        [exists ((A' ∥ Q2) ∥ R) | exists ((A' ∥ Q) ∥ R2)];
-        split; by [eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
-    + case: (ltsselP_parE HB) => [[Q2 [-> HQ2]]|[R2 [-> HR2]]];
-        [exists ((A' ∥ Q2) ∥ R) | exists ((A' ∥ Q) ∥ R2)];
-        split; by [eauto with htr | apply: CGC_one; exact: CG_PAssoc'].
   - (* CG_PZero *)
     move=> n P T HT.
     case: (ltstP_parE HT) =>
